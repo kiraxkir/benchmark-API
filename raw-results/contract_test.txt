@@ -1,0 +1,114 @@
+Test de contrat — 2026-11-15 17:03:38 — laravel (8001), fastapi (8002), spring (8003), gin (8004)
+
+  #  catégorie    cas                                         laravel  fastapi   spring      gin  identiques
+------------------------------------------------------------------------------------------------------------
+  1  GET posts    défauts (page 1, limit 20)                     PASS     PASS     PASS     PASS         oui
+  2  GET posts    limit=2                                        PASS     PASS     PASS     PASS         oui
+  3  GET posts    limit=1 (borne basse)                          PASS     PASS     PASS     PASS         oui
+  4  GET posts    limit=100 (borne haute) + tri                  PASS     PASS     PASS     PASS         oui
+  5  GET posts    page=2&limit=5 (continuité)                    PASS     PASS     PASS     PASS         oui
+  6  GET posts    page=50 (page du scénario k6)                  PASS     PASS     PASS     PASS         oui
+  7  GET posts    dernière page pleine (2000×5)                  PASS     PASS     PASS     PASS         oui
+  8  GET posts    page au-delà des données                       PASS     PASS     PASS     PASS         oui
+  9  GET posts    page=007 lue comme 7                           PASS     PASS     PASS     PASS         oui
+ 10  GET posts    page=0                                         PASS     PASS     PASS     PASS         oui
+ 11  GET posts    page=-1                                        PASS     PASS     PASS     PASS         oui
+ 12  GET posts    page=abc                                       PASS     PASS     PASS     PASS         oui
+ 13  GET posts    page=1.5                                       PASS     PASS     PASS     PASS         oui
+ 14  GET posts    page=+1                                        PASS     PASS     PASS     PASS         oui
+ 15  GET posts    page= (vide)                                   PASS     PASS     PASS     PASS         oui
+ 16  GET posts    limit=0                                        PASS     PASS     PASS     PASS         oui
+ 17  GET posts    limit=101                                      PASS     PASS     PASS     PASS         oui
+ 18  GET posts    limit= (vide)                                  PASS     PASS     PASS     PASS         oui
+ 19  GET posts    limit=abc                                      PASS     PASS     PASS     PASS         oui
+ 20  GET posts    page > BIGINT                                  PASS     PASS     PASS     PASS         oui
+ 21  GET posts    (page-1)×limit > BIGINT                        PASS     PASS     PASS     PASS         oui
+ 22  POST posts   nominal                                        PASS     PASS     PASS     PASS         oui
+ 23  GET posts    post créé en tête de liste                     PASS     PASS     PASS     PASS         oui
+ 24  POST posts   trim Unicode + emoji                           PASS     PASS     PASS     PASS         oui
+ 25  POST posts   U+200B non retiré                              PASS     PASS     PASS     PASS         oui
+ 26  POST posts   280 caractères accentués                       PASS     PASS     PASS     PASS         oui
+ 27  POST posts   champ supplémentaire ignoré                    PASS     PASS     PASS     PASS         oui
+ 28  POST posts   281 caractères                                 PASS     PASS     PASS     PASS         oui
+ 29  POST posts   user_id manquant                               PASS     PASS     PASS     PASS         oui
+ 30  POST posts   content manquant                               PASS     PASS     PASS     PASS         oui
+ 31  POST posts   user_id "12" (chaîne)                          PASS     PASS     PASS     PASS         oui
+ 32  POST posts   user_id 12.0                                   PASS     PASS     PASS     PASS         oui
+ 33  POST posts   user_id 1e1                                    PASS     PASS     PASS     PASS         oui
+ 34  POST posts   user_id true                                   PASS     PASS     PASS     PASS         oui
+ 35  POST posts   user_id null                                   PASS     PASS     PASS     PASS         oui
+ 36  POST posts   user_id 0                                      PASS     PASS     PASS     PASS         oui
+ 37  POST posts   user_id -3                                     PASS     PASS     PASS     PASS         oui
+ 38  POST posts   user_id > BIGINT                               PASS     PASS     PASS     PASS         oui
+ 39  POST posts   content nombre                                 PASS     PASS     PASS     PASS         oui
+ 40  POST posts   content vide                                   PASS     PASS     PASS     PASS         oui
+ 41  POST posts   content espaces seulement                      PASS     PASS     PASS     PASS         oui
+ 42  POST posts   JSON invalide                                  PASS     PASS     PASS     PASS         oui
+ 43  POST posts   corps vide                                     PASS     PASS     PASS     PASS         oui
+ 44  POST posts   corps tableau                                  PASS     PASS     PASS     PASS         oui
+ 45  POST posts   corps null                                     PASS     PASS     PASS     PASS         oui
+ 46  POST posts   texte après l'objet                            PASS     PASS     PASS     PASS         oui
+ 47  POST posts   NaN dans le corps                              PASS     PASS     PASS     PASS         oui
+ 48  POST posts   user inexistant                                PASS     PASS     PASS     PASS         oui
+ 49  POST posts   ordre : 400 avant user inexistant              PASS     PASS     PASS     PASS         oui
+ 50  POST like    nominal                                        PASS     PASS     PASS     PASS         oui
+ 51  POST like    doublon -> 409                                 PASS     PASS     PASS     PASS         oui
+ 52  POST like    doublon d'un like du seed                      PASS     PASS     PASS     PASS         oui
+ 53  POST like    chemin 007 lu comme 7                          PASS     PASS     PASS     PASS         oui
+ 54  POST like    chemin abc                                     PASS     PASS     PASS     PASS         oui
+ 55  POST like    chemin 0                                       PASS     PASS     PASS     PASS         oui
+ 56  POST like    chemin -1                                      PASS     PASS     PASS     PASS         oui
+ 57  POST like    chemin +5                                      PASS     PASS     PASS     PASS         oui
+ 58  POST like    chemin 1.5                                     PASS     PASS     PASS     PASS         oui
+ 59  POST like    chemin > BIGINT                                PASS     PASS     PASS     PASS         oui
+ 60  POST like    ordre : chemin avant corps                     PASS     PASS     PASS     PASS         oui
+ 61  POST like    user_id manquant                               PASS     PASS     PASS     PASS         oui
+ 62  POST like    user_id "1" (chaîne)                           PASS     PASS     PASS     PASS         oui
+ 63  POST like    ordre : 400 avant post inexistant              PASS     PASS     PASS     PASS         oui
+ 64  POST like    user inexistant                                PASS     PASS     PASS     PASS         oui
+ 65  POST like    post inexistant                                PASS     PASS     PASS     PASS         oui
+ 66  POST like    post BIGINT max inexistant                     PASS     PASS     PASS     PASS         oui
+ 67  POST like    ordre : user avant post                        PASS     PASS     PASS     PASS         oui
+ 68  POST follow  nominal                                        PASS     PASS     PASS     PASS         oui
+ 69  POST follow  doublon -> 409                                 PASS     PASS     PASS     PASS         oui
+ 70  POST follow  doublon d'un follow du seed                    PASS     PASS     PASS     PASS         oui
+ 71  POST follow  auto-follow                                    PASS     PASS     PASS     PASS         oui
+ 72  POST follow  ordre : auto-follow avant user inexistant      PASS     PASS     PASS     PASS         oui
+ 73  POST follow  follower inexistant                            PASS     PASS     PASS     PASS         oui
+ 74  POST follow  suivi inexistant                               PASS     PASS     PASS     PASS         oui
+ 75  POST follow  chemin x                                       PASS     PASS     PASS     PASS         oui
+ 76  POST follow  chemin 0                                       PASS     PASS     PASS     PASS         oui
+ 77  POST follow  follower_id manquant                           PASS     PASS     PASS     PASS         oui
+ 78  POST follow  follower_id "4" (chaîne)                       PASS     PASS     PASS     PASS         oui
+ 79  POST follow  follower_id 4.0                                PASS     PASS     PASS     PASS         oui
+ 80  POST follow  JSON invalide                                  PASS     PASS     PASS     PASS         oui
+ 81  POST comment nominal                                        PASS     PASS     PASS     PASS         oui
+ 82  POST comment chemin 007 + trim                              PASS     PASS     PASS     PASS         oui
+ 83  POST comment 500 caractères                                 PASS     PASS     PASS     PASS         oui
+ 84  POST comment 501 caractères                                 PASS     PASS     PASS     PASS         oui
+ 85  POST comment content vide                                   PASS     PASS     PASS     PASS         oui
+ 86  POST comment content manquant                               PASS     PASS     PASS     PASS         oui
+ 87  POST comment user_id manquant                               PASS     PASS     PASS     PASS         oui
+ 88  POST comment user_id "2" (chaîne)                           PASS     PASS     PASS     PASS         oui
+ 89  POST comment user inexistant                                PASS     PASS     PASS     PASS         oui
+ 90  POST comment post inexistant                                PASS     PASS     PASS     PASS         oui
+ 91  POST comment ordre : user avant post                        PASS     PASS     PASS     PASS         oui
+ 92  POST comment chemin abc                                     PASS     PASS     PASS     PASS         oui
+ 93  POST comment chemin > BIGINT                                PASS     PASS     PASS     PASS         oui
+ 94  Routes       route inconnue                                 PASS     PASS     PASS     PASS         oui
+ 95  Routes       hors préfixe /api                              PASS     PASS     PASS     PASS         oui
+ 96  Routes       racine                                         PASS     PASS     PASS     PASS         oui
+ 97  Routes       barre oblique finale                           PASS     PASS     PASS     PASS         oui
+ 98  Routes       GET sur une route POST                         PASS     PASS     PASS     PASS         oui
+ 99  Routes       DELETE /api/posts                              PASS     PASS     PASS     PASS         oui
+100  Routes       PUT /api/posts                                 PASS     PASS     PASS     PASS         oui
+101  Routes       POST /api/posts/1                              PASS     PASS     PASS     PASS         oui
+102  Routes       GET /api/users/1/follow                        PASS     PASS     PASS     PASS         oui
+------------------------------------------------------------------------------------------------------------
+laravel  : 102/102 PASS (100 %)
+fastapi  : 102/102 PASS (100 %)
+spring   : 102/102 PASS (100 %)
+gin      : 102/102 PASS (100 %)
+Corps identiques entre les 4 API (hors id/created_at des créations) : 102/102
+
+RÉSULTAT : 100 % PASS
