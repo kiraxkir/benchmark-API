@@ -2,7 +2,7 @@
 
 Graine aléatoire fixe (42) -> le fichier produit est identique à chaque exécution.
 Volumes (CLAUDE.md §5) : 1 000 users, 10 000 posts, 20 000 likes, 5 000 follows,
-20 000 comments ; inserts groupés par 1 000 lignes ; dates à partir du 2026-01-01.
+20 000 comments ; inserts groupés par 1 000 lignes ; dates entre le 2026-01-01 et le 2026-10-31.
 
 Usage : python database/generate_seed.py
 """
@@ -47,6 +47,11 @@ def sentence(rng: random.Random, max_len: int, min_words: int, max_words: int) -
     return text[:max_len].rstrip()
 
 
+def after(t: datetime, rng: random.Random) -> datetime:
+    """Date postérieure à t (1 min à 7 jours), plafonnée à END (dates du seed <= 2026-10-31)."""
+    return min(t + timedelta(seconds=rng.randint(60, 7 * 86400)), END)
+
+
 def sql_str(s: str) -> str:
     return "'" + s.replace("\\", "\\\\").replace("'", "''") + "'"
 
@@ -75,7 +80,7 @@ def main() -> None:
         uid = rng.randint(1, N_USERS)
         posts.append(f"({pid}, {uid}, {sql_str(sentence(rng, 280, 3, 40))}, '{fmt(t)}')")
 
-    # Likes : couples (user, post) uniques, datés après le post (0 à 7 jours).
+    # Likes : couples (user, post) uniques, datés après le post (1 min à 7 jours, plafonné au 2026-10-31).
     seen = set()
     likes = []
     while len(likes) < N_LIKES:
@@ -84,7 +89,7 @@ def main() -> None:
         if (uid, pid) in seen:
             continue
         seen.add((uid, pid))
-        t = post_times[pid - 1] + timedelta(seconds=rng.randint(60, 7 * 86400))
+        t = after(post_times[pid - 1], rng)
         likes.append(f"({len(likes) + 1}, {uid}, {pid}, '{fmt(t)}')")
 
     # Follows : couples uniques, jamais d'auto-abonnement.
@@ -99,12 +104,12 @@ def main() -> None:
         t = START + timedelta(seconds=rng.randint(0, SPAN_S))
         follows.append(f"({len(follows) + 1}, {a}, {b}, '{fmt(t)}')")
 
-    # Commentaires : datés après le post (0 à 7 jours).
+    # Commentaires : datés après le post (1 min à 7 jours, plafonné au 2026-10-31).
     comments = []
     for cid in range(1, N_COMMENTS + 1):
         pid = rng.randint(1, N_POSTS)
         uid = rng.randint(1, N_USERS)
-        t = post_times[pid - 1] + timedelta(seconds=rng.randint(60, 7 * 86400))
+        t = after(post_times[pid - 1], rng)
         comments.append(f"({cid}, {pid}, {uid}, {sql_str(sentence(rng, 500, 1, 25))}, '{fmt(t)}')")
 
     with OUT.open("w", encoding="utf-8", newline="\n") as out:

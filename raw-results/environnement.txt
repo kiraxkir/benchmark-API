@@ -11,9 +11,10 @@ Machine (unique : développement + mesures + générateur de charge k6)
 
 Outils sur l'hôte
 - k6      : v2.4.0 (feuille de route : « v1.x » -> version installée plus récente)
-- Python  : 3.13.0 (scripts campagne/analyse ; feuille de route : 3.12)
-- Go      : 1.27.4 (hôte, dev seulement ; l'image Docker utilise golang:1.23-alpine)
-- Java    : 25.0.1 (hôte, dev seulement ; les images Docker utilisent Temurin 21)
+- Python  : 3.13.0 (scripts campagne/analyse ; CLAUDE.md demande 3.12 -> 3.13 installée,
+            scripts sans dépendance à une version précise ; FastAPI tourne en python:3.12-slim)
+- Go      : 1.27.4 (hôte)
+- Java    : 25.0.1 (hôte)
 - PHP     : 8.3.30 (hôte, dev seulement)
 
 Images Docker
@@ -21,9 +22,8 @@ Images Docker
 - (images des API : complété en phase 2)
 
 Écarts par rapport à CLAUDE.md (et pourquoi)
-- Nom de la base : « mri » (consigne du groupe) au lieu de « bench » cité dans les exemples.
-- Port MySQL publié sur l'hôte : 3307 au lieu de 3306 (consigne du groupe). Sans effet sur
-  les mesures : les API joignent MySQL par le réseau Docker (mysql:3306).
+- MySQL : service compose « mysql », conteneur « mysql-dev », port hôte 3307. Les API joignent
+  MySQL par le réseau Docker (mysql:3306).
 - MySQL lancé avec --default-time-zone=+00:00 et utf8mb4 explicites pour que le suffixe « Z »
   des dates soit exact.
 - reset.sql remet aussi les AUTO_INCREMENT à leur valeur initiale (identifiants reproductibles

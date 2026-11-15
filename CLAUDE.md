@@ -200,6 +200,23 @@ comme en 5.2. Réponse `201` :
 
 Pas de transaction explicite : chaque requête en autocommit (même comportement partout).
 
+### 5.6 Précisions validées par le groupe (2026-11-15)
+1. Paramètre de chemin : accepté seulement s'il correspond à `^[0-9]+$` et vaut entre 1 et
+   9223372036854775807 ; sinon `404 not_found` (`abc`, `-1`, `0`, `+5`, `1.5`, débordement).
+   `007` est lu comme 7.
+2. `page` / `limit` : chiffres seulement (`^[0-9]+$`) ; `page ≥ 1` (et ≤ 9223372036854775807),
+   `1 ≤ limit ≤ 100` ; paramètre présent mais vide (`page=`) ou non conforme → `400 validation_error` ;
+   paramètre absent → valeur par défaut.
+3. `user_id` / `follower_id` dans le corps : entier JSON strict (`"12"`, `12.0`, `true`, `null`
+   → 400) ; valeur ≤ 0 ou hors BIGINT → `400 validation_error`.
+4. Corps : JSON qui n'est pas un objet, corps vide ou JSON mal formé → `400 validation_error`.
+   Champs supplémentaires ignorés. `Content-Type` de la requête non vérifié.
+5. `content` : doit être une chaîne ; trim des espaces blancs ASCII **et** Unicode en début/fin ;
+   longueur comptée après trim en caractères Unicode (points de code) ; la valeur trimée est
+   stockée et renvoyée.
+6. Mauvaise méthode sur une route existante (ex. `GET /api/posts/1/like`) → `404 not_found`
+   (jamais 405).
+
 ---
 
 ## 6. Base de données
