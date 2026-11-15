@@ -32,7 +32,10 @@ Images Docker
             Spring Boot 4.1.2 (Spring Framework 7.0.10, Tomcat 11.0.27, Jackson 3.1.7,
             HikariCP 7.0.2, mysql-connector-j 9.7.0 ; versions figées par le BOM du parent 4.1.2)
             image benchmark-spring : 521 Mo
-- (Gin : complété au fil de la phase 2)
+- Gin     : build golang:1.27-alpine (Go 1.27.4, golang@sha256:eb61c3873c97416fff0116553f…), exécution alpine:3.22 ()
+            (CLAUDE.md dit « alpine » : étiquette 3.22 épinglée)
+            gin v1.12.0, go-sql-driver/mysql v1.10.1 (go.sum versionné)
+            image benchmark-gin : 34.1MB
 
 Configuration Laravel
 - php-fpm pm=static, pm.max_children=10, pm.max_requests=0, log d'accès php-fpm supprimé ;
@@ -64,6 +67,12 @@ Configuration Spring Boot
   allowPublicKeyRetrieval=true.
 - Corps lu en octets et analysé avec Jackson 3 (FAIL_ON_TRAILING_TOKENS), réponse sérialisée
   avec Content-Type fixe application/json (pas de négociation de contenu, Accept ignoré).
+
+Configuration Gin
+- gin.SetMode(ReleaseMode), gin.New() + gin.CustomRecovery (= Recovery avec réponse 500 au format
+  du contrat), pas de Logger ; RedirectTrailingSlash/RedirectFixedPath désactivés.
+- SetMaxOpenConns(10), SetMaxIdleConns(10) (10 connexions vérifiées), collation utf8mb4_0900_ai_ci.
+- Binaire statique (CGO_ENABLED=0). Go >= 1.25 règle GOMAXPROCS sur la limite CPU du cgroup (2).
 
 Remarque authentification MySQL
 - root utilise caching_sha2_password. Sans TLS, PyMySQL (sans le paquet cryptography) ne sait

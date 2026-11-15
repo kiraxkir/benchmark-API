@@ -1,0 +1,4 @@
+gin-api
+*.exe
+Dockerfile
+.dockerignore
