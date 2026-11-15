@@ -32,7 +32,7 @@ Images Docker
             Spring Boot 4.1.2 (Spring Framework 7.0.10, Tomcat 11.0.27, Jackson 3.1.7,
             HikariCP 7.0.2, mysql-connector-j 9.7.0 ; versions figées par le BOM du parent 4.1.2)
             image benchmark-spring : 521 Mo
-- Gin     : build golang:1.27-alpine (Go 1.27.4, golang@sha256:eb61c3873c97416fff0116553f…), exécution alpine:3.22 ()
+- Gin     : build golang:1.27-alpine (Go 1.27.4, golang@sha256:eb61c3873c97416fff0116553f…), exécution alpine:3.22 (Alpine 3.22.8)
             (CLAUDE.md dit « alpine » : étiquette 3.22 épinglée)
             gin v1.12.0, go-sql-driver/mysql v1.10.1 (go.sum versionné)
             image benchmark-gin : 34.1MB
