@@ -59,11 +59,13 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            // Benchmark : 1 connexion persistante par worker php-fpm (10 workers -> 10 connexions),
-            // requêtes préparées natives (les entiers MySQL sont renvoyés comme entiers PHP).
+            // Benchmark : 1 connexion persistante par worker php-fpm (10 workers -> 10 connexions).
+            // Requêtes préparées émulées (paramètres insérés côté client, 1 aller-retour par requête,
+            // comme les pilotes Python, Java et Go) - décision du groupe, CLAUDE.md §5.6.12.
+            // Depuis PHP 8.1, mysqlnd renvoie quand même les entiers comme entiers PHP.
             'options' => extension_loaded('pdo_mysql') ? [
                 PDO::ATTR_PERSISTENT => true,
-                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_EMULATE_PREPARES => true,
             ] : [],
         ],
 

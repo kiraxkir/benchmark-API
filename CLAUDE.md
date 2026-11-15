@@ -225,6 +225,10 @@ Pas de transaction explicite : chaque requête en autocommit (même comportement
 11. Ressources : chaque API a ses propres limites `cpus: "2"`, `mem_limit: 1g` (les 4 peuvent
     tourner ensemble pour les tests de contrat). Laravel : nginx a en plus `cpus: "0.5"`,
     `mem_limit: 128m` (signalé dans les Limites du rapport). Mesures : une API à la fois (§10).
+12. Envoi des requêtes : paramètres insérés côté client dans les 4 pilotes (1 aller-retour par
+    requête SQL) : PyMySQL et Connector/J par défaut, Gin `interpolateParams=true`, Laravel
+    `PDO::ATTR_EMULATE_PREPARES=true`. Laravel garde ses `USE` + `SET NAMES…, sql_mode` à chaque
+    requête (comportement de son connecteur, signalé dans les Limites).
 
 ---
 

@@ -102,6 +102,9 @@ func main() {
 	cfg.Addr = envOr("DB_HOST", "mysql") + ":" + envOr("DB_PORT", "3306")
 	cfg.DBName = os.Getenv("DB_NAME")
 	cfg.Collation = "utf8mb4_0900_ai_ci"
+	// Paramètres insérés côté client : 1 aller-retour par requête, comme les pilotes
+	// Python, Java et PHP (émulation) - décision du groupe, CLAUDE.md §5.6.12.
+	cfg.InterpolateParams = true
 	connector, err := mysql.NewConnector(cfg)
 	if err != nil {
 		log.Fatal(err)

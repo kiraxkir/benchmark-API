@@ -43,7 +43,7 @@ Configuration Laravel
 - config:cache au démarrage du conteneur (secrets non figés dans l'image), route:cache au build,
   autoloader Composer --classmap-authoritative, APP_ENV=production, APP_DEBUG=false.
 - PDO::ATTR_PERSISTENT=true (1 connexion par worker -> 10 connexions vérifiées dans processlist),
-  ATTR_EMULATE_PREPARES=false. À chaque requête, Laravel exécute « use `mri` » et
+  ATTR_EMULATE_PREPARES=true (CLAUDE.md §5.6.12). À chaque requête, Laravel exécute « use `mri` » et
   « SET NAMES utf8mb4 COLLATE utf8mb4_0900_ai_ci, SESSION sql_mode=… » (comportement par défaut
   du connecteur MySQL de Laravel, conservé).
 - Middlewares globaux TrimStrings et ConvertEmptyStringsToNull retirés (validation manuelle
@@ -72,7 +72,14 @@ Configuration Gin
 - gin.SetMode(ReleaseMode), gin.New() + gin.CustomRecovery (= Recovery avec réponse 500 au format
   du contrat), pas de Logger ; RedirectTrailingSlash/RedirectFixedPath désactivés.
 - SetMaxOpenConns(10), SetMaxIdleConns(10) (10 connexions vérifiées), collation utf8mb4_0900_ai_ci.
+- interpolateParams=true (CLAUDE.md §5.6.12).
 - Binaire statique (CGO_ENABLED=0). Go >= 1.25 règle GOMAXPROCS sur la limite CPU du cgroup (2).
+
+Envoi des requêtes SQL (mesuré avec SHOW GLOBAL STATUS, 20 GET /api/posts par API)
+- Avant harmonisation : Laravel (préparées natives) USE + SET + PREPARE/EXECUTE/CLOSE ;
+  Gin PREPARE/EXECUTE/CLOSE ; FastAPI et Spring : 1 requête interpolée côté client.
+- Après (option 2 retenue par le groupe) : 1 requête SQL interpolée côté client dans les 4 API,
+  0 PREPARE ; Laravel exécute en plus USE + SET à chaque requête HTTP (à signaler en Limites).
 
 Remarque authentification MySQL
 - root utilise caching_sha2_password. Sans TLS, PyMySQL (sans le paquet cryptography) ne sait
