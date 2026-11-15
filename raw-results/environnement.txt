@@ -90,9 +90,13 @@ Outillage de mesure (phase 4)
 - startup_time.py : docker compose stop puis up -d --no-build (conteneur existant relancé, pas recréé),
   chronométré jusqu'au premier 200 (sondage 50 ms) ; inclut le coût de la commande docker compose.
   Cache disque de l'hôte chaud.
-- Durabilité MySQL (configuration par défaut de mysql:8.4) : innodb_flush_log_at_trx_commit=1,
-  sync_binlog=1, binlog activé, doublewrite ON, O_DIRECT. Mesuré : ~9 ms par INSERT en autocommit
-  avec un seul client (200 INSERT, 3 séries : 9,0 / 9,4 / 8,7 ms).
+- Durabilité MySQL : la configuration par défaut de mysql:8.4 (innodb_flush_log_at_trx_commit=1,
+  sync_binlog=1, binlog activé, doublewrite ON, O_DIRECT) coûtait ~9 ms par INSERT en autocommit
+  avec un seul client (200 INSERT, 3 séries : 9,0 / 9,4 / 8,7 ms) sur le disque WSL2.
+  -> Décision du groupe (option b, CLAUDE.md §6) : --innodb-flush-log-at-trx-commit=2 --skip-log-bin.
+     Mesuré ensuite : coût d'un INSERT non distinguable d'un SELECT 1 (< 0,1 ms d'écart).
+- Essais à blanc (1 essai de 5 s par charge, conservés dans raw-results/essai-a-blanc/) :
+  1-durabilite-complete/ (avant option b) et 2-option-b/ (après). Ne font pas partie de la campagne.
 
 Remarque authentification MySQL
 - root utilise caching_sha2_password. Sans TLS, PyMySQL (sans le paquet cryptography) ne sait

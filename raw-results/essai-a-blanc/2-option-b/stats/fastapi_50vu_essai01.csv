@@ -1,0 +1,17 @@
+t_s,conteneur,cpu_pct,mem_mio
+1.558,fastapi-api,0.19,105.1
+1.558,mysql-dev,206.45,554.1
+2.058,fastapi-api,0.19,105.1
+2.058,mysql-dev,206.45,554.1
+2.558,fastapi-api,67.68,105.3
+2.558,mysql-dev,203.82,556.2
+3.058,fastapi-api,67.68,105.3
+3.058,mysql-dev,203.82,556.2
+3.558,fastapi-api,69.49,104.9
+3.558,mysql-dev,201.61,552.6
+4.058,fastapi-api,69.49,104.9
+4.058,mysql-dev,201.61,552.6
+4.558,fastapi-api,61.68,105.0
+4.558,mysql-dev,199.72,553.4
+5.058,fastapi-api,61.68,105.0
+5.058,mysql-dev,199.72,553.4

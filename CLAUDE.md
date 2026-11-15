@@ -251,6 +251,11 @@ Pas de transaction explicite : chaque requête en autocommit (même comportement
 - Service `mysql` du compose : `container_name: mysql-dev`, port `3307:3306`, volume nommé,
   healthcheck `mysqladmin ping`, limites `cpus: "2"`, `mem_limit: 2g`, et options :
   `--innodb-buffer-pool-size=512M --max-connections=200 --skip-name-resolve`.
+- Durabilité réduite, décision du groupe (2026-11-15, « option b ») :
+  `--innodb-flush-log-at-trx-commit=2 --skip-log-bin`. Raison : avec la configuration par défaut
+  (fsync du redo log et du binlog à chaque commit), un INSERT seul coûte ~9 ms sur le disque WSL2 et
+  les écritures mesuraient surtout le disque. À signaler dans la méthodologie et les Limites
+  (une panne de l'hôte pourrait perdre ~1 s de transactions, sans effet sur les mesures).
 
 ---
 
