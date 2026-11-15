@@ -1,0 +1,34 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# PHP / Laravel
+laravel-api/vendor/
+laravel-api/storage/logs/*.log
+laravel-api/bootstrap/cache/*.php
+laravel-api/.env
+
+# Java / Maven
+spring-boot-api/target/
+
+# Go
+gin-api/gin-api
+gin-api/*.exe
+
+# Fichiers temporaires
+tmp*.json
+*.log
+.DS_Store
+Thumbs.db
+
+# LaTeX (fichiers intermédiaires)
+final-report/*.aux
+final-report/*.out
+final-report/*.synctex.gz
+final-report/*.fdb_latexmk
+final-report/*.fls

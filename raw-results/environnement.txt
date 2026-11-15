@@ -1,0 +1,31 @@
+Environnement de mesure — TP2 MRI (relevé le 2026-11-15, complété au fil des phases)
+=====================================================================================
+
+Machine (unique : développement + mesures + générateur de charge k6)
+- Modèle : HP Victus by HP Gaming Laptop 15-fa0xxx
+- CPU    : 12th Gen Intel Core i5-12450H, 8 cœurs / 12 threads
+- RAM    : 15,7 Go
+- OS     : Microsoft Windows 11 Professionnel 10.0.26200
+- Docker : Docker Desktop (moteur 29.9.3), Docker Compose v5.7.0, backend WSL 2
+           ressources vues par Docker : 12 CPU, 7,6 Gio de RAM (pas de .wslconfig)
+
+Outils sur l'hôte
+- k6      : v2.4.0 (feuille de route : « v1.x » -> version installée plus récente)
+- Python  : 3.13.0 (scripts campagne/analyse ; feuille de route : 3.12)
+- Go      : 1.27.4 (hôte, dev seulement ; l'image Docker utilise golang:1.23-alpine)
+- Java    : 25.0.1 (hôte, dev seulement ; les images Docker utilisent Temurin 21)
+- PHP     : 8.3.30 (hôte, dev seulement)
+
+Images Docker
+- mysql:8.4 -> MySQL 8.4.13
+- (images des API : complété en phase 2)
+
+Écarts par rapport à CLAUDE.md (et pourquoi)
+- Nom de la base : « mri » (consigne du groupe) au lieu de « bench » cité dans les exemples.
+- Port MySQL publié sur l'hôte : 3307 au lieu de 3306 (consigne du groupe). Sans effet sur
+  les mesures : les API joignent MySQL par le réseau Docker (mysql:3306).
+- MySQL lancé avec --default-time-zone=+00:00 et utf8mb4 explicites pour que le suffixe « Z »
+  des dates soit exact.
+- reset.sql remet aussi les AUTO_INCREMENT à leur valeur initiale (identifiants reproductibles
+  d'un essai à l'autre).
+- schema.sql : InnoDB crée automatiquement un index sur comments.user_id (exigé par la FK).
