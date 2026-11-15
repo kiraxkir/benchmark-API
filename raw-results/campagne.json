@@ -1,0 +1,18 @@
+{
+  "techs": [
+    "laravel",
+    "fastapi",
+    "spring",
+    "gin"
+  ],
+  "vus": [
+    10,
+    50,
+    100
+  ],
+  "essais": 1,
+  "duration": "5s",
+  "warmup": "10s à 10 VU",
+  "rounds": 3,
+  "created": "2026-11-15T16:11:50Z"
+}

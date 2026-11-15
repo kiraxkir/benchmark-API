@@ -1,0 +1,17 @@
+t_s,conteneur,cpu_pct,mem_mio
+1.562,spring-api,80.34,180.3
+1.562,mysql-dev,2.97,573.1
+2.062,spring-api,80.34,180.3
+2.062,mysql-dev,2.97,573.1
+2.562,spring-api,71.21,181.7
+2.562,mysql-dev,116.75,572.7
+3.062,spring-api,71.21,181.7
+3.062,mysql-dev,116.75,572.7
+3.562,spring-api,68.14,181.7
+3.562,mysql-dev,75.79,573.5
+4.062,spring-api,68.14,181.7
+4.062,mysql-dev,75.79,573.5
+4.562,spring-api,70.0,184.7
+4.562,mysql-dev,89.1,572.7
+5.062,spring-api,70.0,184.7
+5.062,mysql-dev,89.1,572.7

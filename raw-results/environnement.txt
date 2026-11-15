@@ -81,6 +81,19 @@ Envoi des requêtes SQL (mesuré avec SHOW GLOBAL STATUS, 20 GET /api/posts par 
 - Après (option 2 retenue par le groupe) : 1 requête SQL interpolée côté client dans les 4 API,
   0 PREPARE ; Laravel exécute en plus USE + SET à chaque requête HTTP (à signaler en Limites).
 
+Outillage de mesure (phase 4)
+- k6 v2.4.0 lancé avec --quiet --no-usage-report ; scénario load-tests/mixed.js (constant-vus, sans
+  pause), résumé via handleSummary. Structure du JSON v2 vérifiée avant d'écrire le parseur.
+- docker stats lu en flux continu (rafraîchi ~2 fois/s, valeurs mises à jour ~1 fois/s) dans un thread,
+  au lieu d'appels --no-stream répétés (~1,5 s chacun). CPU en % d'un cœur (2 cœurs = 200 %),
+  RAM en Mio ; Laravel = php-fpm + nginx sommés.
+- startup_time.py : docker compose stop puis up -d --no-build (conteneur existant relancé, pas recréé),
+  chronométré jusqu'au premier 200 (sondage 50 ms) ; inclut le coût de la commande docker compose.
+  Cache disque de l'hôte chaud.
+- Durabilité MySQL (configuration par défaut de mysql:8.4) : innodb_flush_log_at_trx_commit=1,
+  sync_binlog=1, binlog activé, doublewrite ON, O_DIRECT. Mesuré : ~9 ms par INSERT en autocommit
+  avec un seul client (200 INSERT, 3 séries : 9,0 / 9,4 / 8,7 ms).
+
 Remarque authentification MySQL
 - root utilise caching_sha2_password. Sans TLS, PyMySQL (sans le paquet cryptography) ne sait
   pas faire l'échange RSA complet ; il réussit grâce au cache du serveur, rempli par le
