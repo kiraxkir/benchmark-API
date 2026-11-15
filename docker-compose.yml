@@ -32,5 +32,42 @@ services:
       retries: 30
       start_period: 20s
 
+  # --- Laravel : php-fpm (10 workers) + nginx séparé. "laravel" = point d'entrée (port 8001).
+  laravel-fpm:
+    build: ./laravel-api
+    image: benchmark-laravel:latest
+    container_name: laravel-fpm
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    cpus: "2"
+    mem_limit: 1g
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  laravel:
+    image: nginx:alpine
+    container_name: laravel-nginx
+    volumes:
+      - ./laravel-api/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8001:80"
+    cpus: "0.5"
+    mem_limit: 128m
+    depends_on:
+      - laravel-fpm
+
 volumes:
   mysql-data:

@@ -1,0 +1,11 @@
+vendor
+.env
+.env.*
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/views/*
+storage/framework/sessions/*
+bootstrap/cache/*.php
+nginx
+Dockerfile
+.dockerignore
