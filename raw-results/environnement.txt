@@ -27,7 +27,12 @@ Images Docker
             fastapi 0.163.1, starlette 1.10.0, uvicorn[standard] 0.54.0 (uvloop 0.23.0, httptools 0.9.0),
             aiomysql 0.3.2, PyMySQL 1.2.4 (requirements.txt figé)
             image benchmark-fastapi : 236MB
-- (autres API : complété au fil de la phase 2)
+- Spring  : build maven:3.9-eclipse-temurin-25 (Maven 3.9.16, maven@sha256:93b8a14e…),
+            exécution eclipse-temurin:25-jre (OpenJDK 25.0.5, eclipse-temurin@sha256:a640968a…)
+            Spring Boot 4.1.2 (Spring Framework 7.0.10, Tomcat 11.0.27, Jackson 3.1.7,
+            HikariCP 7.0.2, mysql-connector-j 9.7.0 ; versions figées par le BOM du parent 4.1.2)
+            image benchmark-spring : 521 Mo
+- (Gin : complété au fil de la phase 2)
 
 Configuration Laravel
 - php-fpm pm=static, pm.max_children=10, pm.max_requests=0, log d'accès php-fpm supprimé ;
@@ -49,6 +54,22 @@ Configuration FastAPI
 - Pool aiomysql par worker : minsize=1, maxsize=5, autocommit=True -> 10 connexions vérifiées.
 - Corps JSON validé à la main (pas de modèle Pydantic), docs/OpenAPI désactivés,
   redirect_slashes=False, gestionnaires d'erreurs -> {"error": ...}.
+
+Configuration Spring Boot
+- java -Xmx512m -jar (JVM sans autre réglage), Tomcat par défaut (200 threads max),
+  logging.level.root=WARN (PageNotFound en ERROR : pas de ligne par 404), pas d'access log,
+  pas de Whitelabel, pas de ressources statiques, ProblemDetails désactivés.
+- HikariCP maximum-pool-size=10 (10 connexions vérifiées), auto-commit.
+- Connector/J : sslMode=DISABLED (comme les 3 autres pilotes, sans TLS),
+  allowPublicKeyRetrieval=true.
+- Corps lu en octets et analysé avec Jackson 3 (FAIL_ON_TRAILING_TOKENS), réponse sérialisée
+  avec Content-Type fixe application/json (pas de négociation de contenu, Accept ignoré).
+
+Remarque authentification MySQL
+- root utilise caching_sha2_password. Sans TLS, PyMySQL (sans le paquet cryptography) ne sait
+  pas faire l'échange RSA complet ; il réussit grâce au cache du serveur, rempli par le
+  healthcheck (mysqladmin ping toutes les 5 s) avant que les API démarrent (service_healthy).
+  Vérifié : redémarrage de MySQL puis de FastAPI seul -> 200.
 
 Écarts par rapport à CLAUDE.md (et pourquoi)
 - MySQL : service compose « mysql », conteneur « mysql-dev », port hôte 3307. Les API joignent
