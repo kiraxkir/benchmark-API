@@ -216,6 +216,15 @@ Pas de transaction explicite : chaque requête en autocommit (même comportement
    stockée et renvoyée.
 6. Mauvaise méthode sur une route existante (ex. `GET /api/posts/1/like`) → `404 not_found`
    (jamais 405).
+7. Barre oblique finale (`/api/posts/`) → `404 not_found` (pas de redirection, pas d'équivalence).
+8. Erreur interne inattendue → `500 {"error":"internal_error"}`.
+9. « Espaces blancs » du trim = propriété Unicode `White_Space`, exactement : U+0009–U+000D,
+   U+0020, U+0085, U+00A0, U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F, U+3000
+   (U+200B et U+FEFF ne sont **pas** retirés).
+10. Si `(page-1) × limit` dépasse 9223372036854775807 → `400 validation_error`.
+11. Ressources : chaque API a ses propres limites `cpus: "2"`, `mem_limit: 1g` (les 4 peuvent
+    tourner ensemble pour les tests de contrat). Laravel : nginx a en plus `cpus: "0.5"`,
+    `mem_limit: 128m` (signalé dans les Limites du rapport). Mesures : une API à la fois (§10).
 
 ---
 

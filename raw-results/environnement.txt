@@ -23,6 +23,10 @@ Images Docker
             digest sha256:fed7e14b…) ; dépendances via composer:2 (Composer 2.9.4 sur l'hôte pour le lock)
             Laravel Framework 13.42.0 (laravel/laravel 13, composer.lock versionné)
             image benchmark-laravel : 754 Mo
+- FastAPI : python:3.12-slim (Python 3.12.16, python@sha256:5e2bdb1b0d542d5039cffb8181…)
+            fastapi 0.163.1, starlette 1.10.0, uvicorn[standard] 0.54.0 (uvloop 0.23.0, httptools 0.9.0),
+            aiomysql 0.3.2, PyMySQL 1.2.4 (requirements.txt figé)
+            image benchmark-fastapi : 236MB
 - (autres API : complété au fil de la phase 2)
 
 Configuration Laravel
@@ -37,7 +41,14 @@ Configuration Laravel
 - Middlewares globaux TrimStrings et ConvertEmptyStringsToNull retirés (validation manuelle
   identique aux 3 autres versions) ; middleware RejectTrailingSlash ajouté (Laravel ignore la
   barre oblique finale, les autres non).
-- Limites : laravel-fpm cpus=2 / 1g ; laravel-nginx cpus=0.5 / 128m (voir Limites du rapport).
+- Limites : laravel-fpm cpus=2 / 1g ; laravel-nginx cpus=0.5 / 128m en plus (décision du groupe,
+  CLAUDE.md §5.6.11 ; à signaler dans les Limites du rapport).
+
+Configuration FastAPI
+- uvicorn --workers 2 --no-access-log --log-level warning (uvloop + httptools via uvicorn[standard]).
+- Pool aiomysql par worker : minsize=1, maxsize=5, autocommit=True -> 10 connexions vérifiées.
+- Corps JSON validé à la main (pas de modèle Pydantic), docs/OpenAPI désactivés,
+  redirect_slashes=False, gestionnaires d'erreurs -> {"error": ...}.
 
 Écarts par rapport à CLAUDE.md (et pourquoi)
 - MySQL : service compose « mysql », conteneur « mysql-dev », port hôte 3307. Les API joignent

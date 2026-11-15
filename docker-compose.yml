@@ -69,5 +69,24 @@ services:
     depends_on:
       - laravel-fpm
 
+  # --- FastAPI : uvicorn 2 workers, pool aiomysql maxsize=5 par worker (port 8002).
+  fastapi:
+    build: ./fastapi-api
+    image: benchmark-fastapi:latest
+    container_name: fastapi-api
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+    ports:
+      - "8002:8000"
+    cpus: "2"
+    mem_limit: 1g
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 volumes:
   mysql-data:
