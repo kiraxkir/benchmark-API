@@ -1,0 +1,20 @@
+% Généré par analysis/analyse.py -- ne pas modifier à la main.
+\begin{table}[htbp]
+\centering
+\small
+\caption{Kruskal-Wallis sur la latence p95 entre les 4 API à 50~VU (30 essais par API)}
+\label{tab:kruskal}
+\begin{tabular}{lrrrp{4.2cm}}
+\toprule
+Endpoint & $H$ & $p$ & $\varepsilon^2$ & Paires non significatives \\
+\midrule
+GET posts & 96,8 & $<10^{-6}$ & 0,81 & aucune \\
+POST posts & 88,8 & $<10^{-6}$ & 0,74 & Spring Boot / Gin \\
+like & 85,4 & $<10^{-6}$ & 0,71 & aucune \\
+follow & 77,8 & $<10^{-6}$ & 0,64 & Spring Boot / Gin \\
+comment & 99,5 & $<10^{-6}$ & 0,83 & aucune \\
+global & 92,1 & $<10^{-6}$ & 0,77 & aucune \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize Paires : tests de Mann-Whitney bilatéraux, correction de Holm sur les 6 paires, $\alpha = 0,05$.
+\end{table}

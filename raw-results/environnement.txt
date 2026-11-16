@@ -112,3 +112,8 @@ Remarque authentification MySQL
 - reset.sql remet aussi les AUTO_INCREMENT à leur valeur initiale (identifiants reproductibles
   d'un essai à l'autre).
 - schema.sql : InnoDB crée automatiquement un index sur comments.user_id (exigé par la FK).
+
+Analyse (phase 6)
+- analysis/analyse.py exécuté avec Python 3.13.0 (hôte ; 3.12 n'est pas installé), pandas 2.3.2,
+  matplotlib 3.10.1, scipy 1.16.1 (épinglés dans analysis/requirements.txt).
+- Tables LaTeX : paquets booktabs, multirow et graphicx (\resizebox) requis.

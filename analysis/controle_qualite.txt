@@ -1,0 +1,26 @@
+Contrôle qualité de raw-results/mesures.csv
+============================================
+
+Lignes : 2160 ; essais (lignes endpoint=all) : 360
+Cases vides : 0
+Doublons (technologie, endpoint, utilisateurs, essai) : 0
+
+Essais par technologie × charge (attendu : 30) :
+  Laravel       10 VU : 30
+  Laravel       50 VU : 30
+  Laravel      100 VU : 30
+  FastAPI       10 VU : 30
+  FastAPI       50 VU : 30
+  FastAPI      100 VU : 30
+  Spring Boot   10 VU : 30
+  Spring Boot   50 VU : 30
+  Spring Boot  100 VU : 30
+  Gin           10 VU : 30
+  Gin           50 VU : 30
+  Gin          100 VU : 30
+
+Essais aberrants (erreurs > 1 %) : 0 ligne(s)
+Lignes avec un taux d'erreur > 0 : 0 ; maximum : 0 %
+Aucun essai n'est supprimé : les essais signalés restent dans l'analyse.
+
+Période de mesure : 2026-11-15T21:57:33Z -> 2026-11-15T23:43:54Z
