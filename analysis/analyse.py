@@ -342,13 +342,16 @@ def fig_startup(dem, written):
 
 
 # --------------------------------------------------------------------------- tables LaTeX
-def tex_table(caption, label, colspec, header, rows, note=None) -> str:
+def tex_table(caption, label, colspec, header, rows, note=None, resize=False) -> str:
+    """Table booktabs ; resize=True ramène la table à la largeur de la colonne (\\resizebox)."""
     out = ["% Généré par analysis/analyse.py -- ne pas modifier à la main.",
            "\\begin{table}[htbp]", "\\centering", "\\small",
-           f"\\caption{{{caption}}}", f"\\label{{{label}}}",
-           f"\\begin{{tabular}}{{{colspec}}}", "\\toprule", header + " \\\\", "\\midrule"]
+           f"\\caption{{{caption}}}", f"\\label{{{label}}}"]
+    if resize:
+        out.append("\\resizebox{\\linewidth}{!}{%")
+    out += [f"\\begin{{tabular}}{{{colspec}}}", "\\toprule", header + " \\\\", "\\midrule"]
     out += rows
-    out += ["\\bottomrule", "\\end{tabular}"]
+    out += ["\\bottomrule", "\\end{tabular}" + ("}" if resize else "")]
     if note:
         out.append(f"\\par\\smallskip\\footnotesize {note}")
     out.append("\\end{table}")
@@ -381,7 +384,8 @@ def table_global(agg, written):
         "API & VU & req/s & p50 (ms) & p95 (ms) & p99 (ms) & CPU API (\\%) & RAM (Mo) & CPU MySQL (\\%) & req/s/cœur",
         rows,
         "CPU en \\% d'un cœur (200~\\% = limite de 2 cœurs). Laravel : php-fpm + nginx sommés "
-        "(limite 2,5 cœurs). RAM : maximum observé pendant l'essai. Efficacité = débit / (CPU API / 100)."),
+        "(limite 2,5 cœurs). RAM : maximum observé pendant l'essai. Efficacité = débit / (CPU API / 100).",
+        resize=True),
         written)
 
 
@@ -426,7 +430,7 @@ def table_kruskal(kw, written, v=REF_VUS):
         "Endpoint & $H$ & $p$ & $\\varepsilon^2$ & Paires non significatives",
         rows,
         "Paires : tests de Mann-Whitney bilatéraux, correction de Holm sur les 6 paires, "
-        f"$\\alpha = {fr(ALPHA, 2)}$."), written)
+        f"$\\alpha = {fr(ALPHA, 2).replace(',', '{,}')}$."), written)
 
 
 def table_startup(dem, ram, img, written):
