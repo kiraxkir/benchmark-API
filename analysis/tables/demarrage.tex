@@ -1,13 +1,8 @@
 % Généré par analysis/analyse.py -- ne pas modifier à la main.
-\begin{table}[htbp]
-\centering
-\small
-\caption{Démarrage à froid, RAM au repos et taille des images}
-\label{tab:demarrage}
-\begin{tabular}{lrrrr}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-API & Médiane & Moyenne $\pm$ IC~95~\% & RAM repos & Image \\
- & (ms) & (ms) & (Mo) & (Mo) \\
+\textbf{Technologie} & \textbf{Médiane} & \textbf{Moyenne} & \textbf{RAM repos} & \textbf{Image} \\
+ & ms & ms $\pm$ IC 95~\% & Mo & Mo \\
 \midrule
 Laravel & 902 & 1\,064 $\pm$ 122 & 46,6 & 808 \\
 FastAPI & 1\,733 & 1\,764 $\pm$ 74 & 104,2 & 225 \\
@@ -15,5 +10,3 @@ Spring Boot & 3\,346 & 3\,523 $\pm$ 147 & 123,2 & 497 \\
 Gin & 445 & 472 $\pm$ 22 & 3,3 & 32 \\
 \bottomrule
 \end{tabular}
-\par\smallskip\footnotesize Démarrage : de \texttt{docker compose up -d} à la première réponse 200 sur \texttt{GET /api/posts?limit=1}. 30 démarrages par API. Laravel : php-fpm + nginx.
-\end{table}

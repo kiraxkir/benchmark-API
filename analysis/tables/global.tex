@@ -1,29 +1,23 @@
 % Généré par analysis/analyse.py -- ne pas modifier à la main.
-\begin{table*}[t]
-\centering
-\small
-\caption{Résultats globaux (tous endpoints) : médiane sur 30 essais de 15~s}
-\label{tab:global}
-\begin{tabular}{llrrrrrrrr}
+\begin{tabular}{@{}lccccccccc@{}}
 \toprule
-API & VU & req/s & p50 (ms) & p95 (ms) & p99 (ms) & CPU API (\%) & RAM (Mo) & CPU MySQL (\%) & req/s/cœur \\
+\textbf{Technologie} & \textbf{Charge} & \textbf{Débit} & \textbf{p50} & \textbf{p95} & \textbf{p99} & \textbf{CPU API} & \textbf{RAM API} & \textbf{CPU MySQL} & \textbf{Efficacité} \\
+ & VU & req/s & ms & ms & ms & \% & Mo & \% & req/s par cœur \\
 \midrule
-\multirow{3}{*}{Laravel} & 10 & 403,6 & 13,9 & 70,3 & 77,1 & 198 & 58 & 198 & 204 \\
+Laravel & 10 & 403,6 & 13,9 & 70,3 & 77,1 & 198 & 58 & 198 & 204 \\
  & 50 & 383,5 & 114,8 & 184,0 & 197,1 & 194 & 59 & 200 & 192 \\
  & 100 & 383,8 & 274,5 & 305,2 & 369,8 & 191 & 60 & 200 & 199 \\
 \midrule
-\multirow{3}{*}{FastAPI} & 10 & 485,4 & 9,4 & 74,5 & 80,4 & 58 & 107 & 191 & 839 \\
+FastAPI & 10 & 485,4 & 9,4 & 74,5 & 80,4 & 58 & 107 & 191 & 839 \\
  & 50 & 444,2 & 100,8 & 290,3 & 401,3 & 57 & 107 & 189 & 778 \\
  & 100 & 441,5 & 201,2 & 603,8 & 930,9 & 56 & 107 & 199 & 775 \\
 \midrule
-\multirow{3}{*}{Spring Boot} & 10 & 448,0 & 8,9 & 81,2 & 86,1 & 39 & 211 & 191 & 1\,156 \\
+Spring Boot & 10 & 448,0 & 8,9 & 81,2 & 86,1 & 39 & 211 & 191 & 1\,156 \\
  & 50 & 404,7 & 101,0 & 292,8 & 398,8 & 40 & 212 & 196 & 1\,002 \\
  & 100 & 406,2 & 199,2 & 601,8 & 900,3 & 40 & 215 & 200 & 1\,023 \\
 \midrule
-\multirow{3}{*}{Gin} & 10 & 449,2 & 8,4 & 83,2 & 87,5 & 23 & 11 & 200 & 1\,933 \\
+Gin & 10 & 449,2 & 8,4 & 83,2 & 87,5 & 23 & 11 & 200 & 1\,933 \\
  & 50 & 422,6 & 99,9 & 287,1 & 383,0 & 21 & 11 & 192 & 1\,957 \\
  & 100 & 420,5 & 197,6 & 593,3 & 800,3 & 22 & 13 & 192 & 1\,935 \\
 \bottomrule
 \end{tabular}
-\par\smallskip\footnotesize CPU en \% d'un cœur (200~\% = limite de 2 cœurs). Laravel : php-fpm + nginx sommés (limite 2,5 cœurs). RAM : maximum observé pendant l'essai. Efficacité = débit / (CPU API / 100).
-\end{table*}

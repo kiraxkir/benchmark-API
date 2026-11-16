@@ -1,12 +1,8 @@
 % Généré par analysis/analyse.py -- ne pas modifier à la main.
-\begin{table}[htbp]
-\centering
-\small
-\caption{Latence p95 par endpoint à 50~VU (ms) : moyenne $\pm$ demi-largeur de l'IC~95~\% (30 essais)}
-\label{tab:p95-endpoints}
-\begin{tabular}{lrrrr}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Endpoint & Laravel & FastAPI & Spring Boot & Gin \\
+\textbf{Route} & \textbf{Laravel} & \textbf{FastAPI} & \textbf{Spring Boot} & \textbf{Gin} \\
+ & ms & ms & ms & ms \\
 \midrule
 GET posts & 189,7 $\pm$ 2,4 & 296,6 $\pm$ 6,9 & 287,7 $\pm$ 1,6 & 192,4 $\pm$ 0,6 \\
 POST posts & 182,4 $\pm$ 2,2 & 287,5 $\pm$ 7,7 & 295,6 $\pm$ 1,4 & 294,2 $\pm$ 0,9 \\
@@ -16,4 +12,3 @@ comment & 182,9 $\pm$ 2,3 & 289,5 $\pm$ 5,6 & 303,2 $\pm$ 2,9 & 331,6 $\pm$ 11,5
 global & 186,8 $\pm$ 2,3 & 293,8 $\pm$ 6,6 & 293,6 $\pm$ 1,0 & 286,9 $\pm$ 1,1 \\
 \bottomrule
 \end{tabular}
-\end{table}

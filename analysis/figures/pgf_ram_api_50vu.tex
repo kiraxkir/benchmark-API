@@ -1,0 +1,18 @@
+% Généré par analysis/analyse.py -- ne pas modifier à la main.
+\begin{tikzpicture}
+\begin{axis}[
+  width=\columnwidth, height=5cm,
+  ybar, bar width=12pt, ymin=0,
+  symbolic x coords={Laravel,FastAPI,Spring Boot,Gin},
+  xtick=data,
+  ylabel={RAM maximale de l'API (Mo), 50~VU},
+  nodes near coords={\pgfmathprintnumber[fixed,precision=0]{\pgfplotspointmeta}},
+  nodes near coords style={font=\scriptsize},
+  tick label style={font=\footnotesize},
+  label style={font=\footnotesize},
+  enlarge x limits=0.18,
+  enlarge y limits={upper, value=0.15}]
+\addplot[fill=gray!40, draw=black] coordinates
+  {(Laravel,63.71) (FastAPI,110.11) (Spring Boot,211.87) (Gin,11.28)};
+\end{axis}
+\end{tikzpicture}

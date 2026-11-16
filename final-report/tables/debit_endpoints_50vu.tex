@@ -1,12 +1,8 @@
 % Généré par analysis/analyse.py -- ne pas modifier à la main.
-\begin{table}[htbp]
-\centering
-\small
-\caption{Débit par endpoint à 50~VU (req/s, médiane sur 30 essais)}
-\label{tab:debit-endpoints}
-\begin{tabular}{lrrrr}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-Endpoint & Laravel & FastAPI & Spring Boot & Gin \\
+\textbf{Route} & \textbf{Laravel} & \textbf{FastAPI} & \textbf{Spring Boot} & \textbf{Gin} \\
+ & req/s & req/s & req/s & req/s \\
 \midrule
 GET posts & 193,0 & 222,0 & 202,0 & 210,1 \\
 POST posts & 57,0 & 66,5 & 61,3 & 63,4 \\
@@ -16,4 +12,3 @@ comment & 38,9 & 44,1 & 39,9 & 42,4 \\
 global & 383,5 & 444,2 & 404,7 & 422,6 \\
 \bottomrule
 \end{tabular}
-\end{table}

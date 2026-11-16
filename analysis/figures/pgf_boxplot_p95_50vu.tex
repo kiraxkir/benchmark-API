@@ -1,0 +1,15 @@
+% Généré par analysis/analyse.py -- ne pas modifier à la main.
+\begin{tikzpicture}
+\begin{axis}[
+  width=\columnwidth, height=5cm,
+  xtick={1,2,3,4},
+  xticklabels={Laravel,FastAPI,Spring Boot,Gin},
+  ylabel={Latence p95 globale (ms), 50~VU},
+  tick label style={font=\footnotesize},
+  label style={font=\footnotesize}]
+\addplot+[boxplot prepared={draw position=1, lower whisker=181.07, lower quartile=182.91, median=184.03, upper quartile=189.97, upper whisker=203.27}, draw=black, fill=gray!40, solid] coordinates {};
+\addplot+[boxplot prepared={draw position=2, lower whisker=284.17, lower quartile=287.83, median=290.31, upper quartile=292.46, upper whisker=385.33}, draw=black, fill=gray!40, solid] coordinates {};
+\addplot+[boxplot prepared={draw position=3, lower whisker=290.89, lower quartile=291.90, median=292.75, upper quartile=294.46, upper whisker=300.26}, draw=black, fill=gray!40, solid] coordinates {};
+\addplot+[boxplot prepared={draw position=4, lower whisker=278.11, lower quartile=286.02, median=287.08, upper quartile=288.16, upper whisker=293.64}, draw=black, fill=gray!40, solid] coordinates {};
+\end{axis}
+\end{tikzpicture}

@@ -13,7 +13,8 @@ Sorties :
     analysis/agregats.csv           médiane, moyenne, écart-type, IC 95 % par techno × endpoint × charge
     analysis/kruskal_wallis.csv     Kruskal-Wallis sur p95 + comparaisons par paires (Mann-Whitney, Holm)
     analysis/figures/*.pdf          figures (largeur 3,4 pouces, lisibles en noir et blanc)
-    analysis/tables/*.tex           tables booktabs
+    analysis/figures/pgf_*.tex      mêmes données en pgfplots, au format du modèle de rapport
+    analysis/tables/*.tex           tabulars booktabs au format du modèle de rapport
 
 Dépendances : analysis/requirements.txt (pandas, matplotlib, scipy).
 """
@@ -351,71 +352,65 @@ def fig_startup(dem, written):
 
 
 # --------------------------------------------------------------------------- tables LaTeX
-def tex_table(caption, label, colspec, header, rows, note=None, wide=False) -> str:
-    """Table booktabs ; wide=True : table* sur les deux colonnes (format IEEEtran)."""
-    env = "table*" if wide else "table"
+# Format du modèle de rapport (TP2 MRI model Rapport.tex) : seul le tabular est généré
+# (@{}...@{}, booktabs, en-têtes en gras, ligne des unités) ; le rapport l'entoure de
+# \begin{table} \caption \label \centering, comme dans le modèle.
+def tex_tabular(colspec, header, units, rows) -> str:
     out = ["% Généré par analysis/analyse.py -- ne pas modifier à la main.",
-           f"\\begin{{{env}}}[{'t' if wide else 'htbp'}]", "\\centering", "\\small",
-           f"\\caption{{{caption}}}", f"\\label{{{label}}}",
-           f"\\begin{{tabular}}{{{colspec}}}", "\\toprule", header + " \\\\", "\\midrule"]
-    out += rows
-    out += ["\\bottomrule", "\\end{tabular}"]
-    if note:
-        out.append(f"\\par\\smallskip\\footnotesize {note}")
-    out.append(f"\\end{{{env}}}")
+           f"\\begin{{tabular}}{{@{{}}{colspec}@{{}}}}", "\\toprule",
+           " & ".join(f"\\textbf{{{h}}}" if h else "" for h in header) + " \\\\"]
+    if units:
+        out.append(" & ".join(units) + " \\\\")
+    out += ["\\midrule", *rows, "\\bottomrule", "\\end{tabular}"]
     return "\n".join(out) + "\n"
+
+
+def row_of(agg, t, e, v, m):
+    return agg[(agg.technologie == t) & (agg.endpoint == e) & (agg.utilisateurs == v) & (agg.metrique == m)].iloc[0]
 
 
 def cell(agg, t, e, v, m, nd=1, ci=False):
     """Médiane ; avec ci=True : moyenne ± demi-largeur de l'IC 95 % (Student)."""
-    r = agg[(agg.technologie == t) & (agg.endpoint == e) & (agg.utilisateurs == v) & (agg.metrique == m)].iloc[0]
+    r = row_of(agg, t, e, v, m)
     if ci:
         return f"{fr(r.moyenne, nd)} $\\pm$ {fr((r.ic95_haut - r.ic95_bas) / 2, nd)}"
     return fr(r.mediane, nd)
 
 
 def table_global(agg, written):
+    """Synthèse des mesures (médianes sur 30 essais), toutes charges : table* dans le rapport."""
     rows = []
     for t in TECHS:
         for i, v in enumerate(VUS):
-            name = f"\\multirow{{{len(VUS)}}}{{*}}{{{TECH_LABEL[t]}}}" if i == 0 else ""
-            rows.append(" & ".join([name, str(v), cell(agg, t, "all", v, "req_s"),
-                                    cell(agg, t, "all", v, "p50_ms"), cell(agg, t, "all", v, "p95_ms"),
-                                    cell(agg, t, "all", v, "p99_ms"), cell(agg, t, "all", v, "cpu_api_moy_pct", 0),
+            rows.append(" & ".join([TECH_LABEL[t] if i == 0 else "", str(v),
+                                    cell(agg, t, "all", v, "req_s"), cell(agg, t, "all", v, "p50_ms"),
+                                    cell(agg, t, "all", v, "p95_ms"), cell(agg, t, "all", v, "p99_ms"),
+                                    cell(agg, t, "all", v, "cpu_api_moy_pct", 0),
                                     cell(agg, t, "all", v, "ram_api_max_mo", 0),
                                     cell(agg, t, "all", v, "cpu_mysql_moy_pct", 0),
                                     cell(agg, t, "all", v, "efficacite_req_s_par_coeur", 0)]) + " \\\\")
         if t != TECHS[-1]:
             rows.append("\\midrule")
-    write_tex("global.tex", tex_table(
-        "Résultats globaux (tous endpoints) : médiane sur 30 essais de 15~s",
-        "tab:global", "llrrrrrrrr",
-        "API & VU & req/s & p50 (ms) & p95 (ms) & p99 (ms) & CPU API (\\%) & RAM (Mo) & CPU MySQL (\\%) & req/s/cœur",
-        rows,
-        "CPU en \\% d'un cœur (200~\\% = limite de 2 cœurs). Laravel : php-fpm + nginx sommés "
-        "(limite 2,5 cœurs). RAM : maximum observé pendant l'essai. Efficacité = débit / (CPU API / 100).",
-        wide=True),
-        written)
+    write_tex("global.tex", tex_tabular(
+        "lccccccccc",
+        ["Technologie", "Charge", "Débit", "p50", "p95", "p99", "CPU API", "RAM API", "CPU MySQL", "Efficacité"],
+        ["", "VU", "req/s", "ms", "ms", "ms", "\\%", "Mo", "\\%", "req/s par cœur"], rows), written)
 
 
 def table_endpoints(agg, written, v=REF_VUS):
-    rows = []
-    for e in ENDPOINTS:
-        rows.append(" & ".join([ENDPOINT_LABEL[e]] + [cell(agg, t, e, v, "p95_ms", ci=True) for t in TECHS]) + " \\\\")
-    write_tex("p95_endpoints_50vu.tex", tex_table(
-        f"Latence p95 par endpoint à {v}~VU (ms) : moyenne $\\pm$ demi-largeur de l'IC~95~\\% (30 essais)",
-        "tab:p95-endpoints", "l" + "r" * len(TECHS),
-        "Endpoint & " + " & ".join(TECH_LABEL[t] for t in TECHS), rows), written)
+    rows = [" & ".join([ENDPOINT_LABEL[e]] + [cell(agg, t, e, v, "p95_ms", ci=True) for t in TECHS]) + " \\\\"
+            for e in ENDPOINTS]
+    write_tex("p95_endpoints_50vu.tex", tex_tabular(
+        "l" + "c" * len(TECHS), ["Route"] + [TECH_LABEL[t] for t in TECHS],
+        [""] + ["ms"] * len(TECHS), rows), written)
 
 
 def table_throughput_endpoints(agg, written, v=REF_VUS):
-    rows = []
-    for e in ENDPOINTS:
-        rows.append(" & ".join([ENDPOINT_LABEL[e]] + [cell(agg, t, e, v, "req_s") for t in TECHS]) + " \\\\")
-    write_tex("debit_endpoints_50vu.tex", tex_table(
-        f"Débit par endpoint à {v}~VU (req/s, médiane sur 30 essais)",
-        "tab:debit-endpoints", "l" + "r" * len(TECHS),
-        "Endpoint & " + " & ".join(TECH_LABEL[t] for t in TECHS), rows), written)
+    rows = [" & ".join([ENDPOINT_LABEL[e]] + [cell(agg, t, e, v, "req_s") for t in TECHS]) + " \\\\"
+            for e in ENDPOINTS]
+    write_tex("debit_endpoints_50vu.tex", tex_tabular(
+        "l" + "c" * len(TECHS), ["Route"] + [TECH_LABEL[t] for t in TECHS],
+        [""] + ["req/s"] * len(TECHS), rows), written)
 
 
 def fmt_p(p: float) -> str:
@@ -433,13 +428,8 @@ def table_kruskal(kw, written, v=REF_VUS):
         pairs = sub[(sub.endpoint == e) & (sub.test == "mann-whitney") & (~sub.significatif)]
         ns = ", ".join(" / ".join(TECH_LABEL[x] for x in p.split("-")) for p in pairs.paire) or "aucune"
         rows.append(f"{ENDPOINT_LABEL[e]} & {fr(k.statistique, 1)} & {fmt_p(k.p)} & {fr(k.taille_effet, 2)} & {ns} \\\\")
-    write_tex("kruskal_p95_50vu.tex", tex_table(
-        f"Kruskal-Wallis sur la latence p95 entre les 4 API à {v}~VU (30 essais par API)",
-        "tab:kruskal", "lrrrp{4.2cm}",
-        "Endpoint & $H$ & $p$ & $\\varepsilon^2$ & Paires non significatives",
-        rows,
-        "Paires : tests de Mann-Whitney bilatéraux, correction de Holm sur les 6 paires, "
-        f"$\\alpha = {fr(ALPHA, 2).replace(',', '{,}')}$."), written)
+    write_tex("kruskal_p95_50vu.tex", tex_tabular(
+        "lcccp{2.9cm}", ["Route", "$H$", "$p$", "$\\varepsilon^2$", "Paires non signif."], None, rows), written)
 
 
 def table_startup(dem, ram, img, written):
@@ -456,13 +446,132 @@ def table_startup(dem, ram, img, written):
         else:
             cells.append("--")
         rows.append(" & ".join(cells) + " \\\\")
-    write_tex("demarrage.tex", tex_table(
-        "Démarrage à froid, RAM au repos et taille des images",
-        "tab:demarrage", "lrrrr",
-        "API & Médiane & Moyenne $\\pm$ IC~95~\\% & RAM repos & Image \\\\\n"
-        " & (ms) & (ms) & (Mo) & (Mo)", rows,
-        "Démarrage : de \\texttt{docker compose up -d} à la première réponse 200 sur "
-        "\\texttt{GET /api/posts?limit=1}. 30 démarrages par API. Laravel : php-fpm + nginx."), written)
+    write_tex("demarrage.tex", tex_tabular(
+        "lcccc", ["Technologie", "Médiane", "Moyenne", "RAM repos", "Image"],
+        ["", "ms", "ms $\\pm$ IC 95~\\%", "Mo", "Mo"], rows), written)
+
+
+# --------------------------------------------------------------------------- figures pgfplots
+# Mêmes réglages que les exemples du modèle de rapport : width=\columnwidth, height=5cm,
+# barres gris clair à contour noir avec valeurs affichées, courbes noires distinguées par
+# style de trait + marqueur. Seul le tikzpicture est généré ; le rapport l'entoure de
+# \begin{figure} ... \caption ... \label, comme dans le modèle. Valeurs : raw-results/ via agrégats.
+PGF_CURVE = {"laravel": "black, thick, mark=*",
+             "fastapi": "black, thick, dashed, mark=square*",
+             "spring": "black, thick, dotted, mark=triangle*",
+             "gin": "gray, thick, dashdotted, mark=diamond*"}
+PGF_FILL = {"laravel": "gray!80", "fastapi": "gray!50", "spring": "gray!20", "gin": "white"}
+PGF_COMMON = ["tick label style={font=\\footnotesize}", "label style={font=\\footnotesize}"]
+
+
+def num(x: float, nd: int = 2) -> str:
+    """Nombre pour pgfplots (point décimal ; l'affichage est francisé par pgf)."""
+    return f"{x:.{nd}f}"
+
+
+def pgf_picture(options: list[str], plots: list[str]) -> str:
+    out = ["% Généré par analysis/analyse.py -- ne pas modifier à la main.",
+           "\\begin{tikzpicture}", "\\begin{axis}["]
+    out.append(",\n".join("  " + o for o in options) + "]")
+    out += plots
+    out += ["\\end{axis}", "\\end{tikzpicture}"]
+    return "\n".join(out) + "\n"
+
+
+def pgf_curves(agg, metric, ylabel, name, written, legend="north west", ymax=None):
+    """Courbes métrique vs charge : moyenne ± IC 95 % (barres d'erreur), une courbe par techno."""
+    sub = get(agg, metric)
+    plots = []
+    for t in TECHS:
+        r = sub[sub.technologie == t].sort_values("utilisateurs")
+        pts = " ".join(f"({int(v)},{num(m)}) +- (0,{num((hi - lo) / 2)})"
+                       for v, m, lo, hi in zip(r.utilisateurs, r.moyenne, r.ic95_bas, r.ic95_haut))
+        plots.append(f"\\addplot[{PGF_CURVE[t]}, error bars/.cd, y dir=both, y explicit]\n  coordinates {{{pts}}};")
+    plots.append("\\legend{" + ", ".join(TECH_LABEL[t] for t in TECHS) + "}")
+    anchor = {"north west": "at={(0.03,0.97)}, anchor=north west",
+              "south east": "at={(0.97,0.03)}, anchor=south east",
+              "south west": "at={(0.03,0.03)}, anchor=south west"}[legend]
+    opts = ["width=\\columnwidth, height=5cm",
+            "xlabel={Utilisateurs virtuels simultanés (VU)}", f"ylabel={{{ylabel}}}",
+            "xtick={10,50,100}", *PGF_COMMON,
+            f"legend style={{font=\\scriptsize, {anchor}}}", "ymin=0"]
+    if ymax is not None:
+        opts.append(f"ymax={ymax}")
+    write_tex_fig(name, pgf_picture(opts, plots), written)
+
+
+def pgf_bars(values: dict, ylabel, name, written, precision=0):
+    """Barres simples par technologie (style du premier exemple du modèle)."""
+    coords = " ".join(f"({TECH_LABEL[t]},{num(values[t])})" for t in TECHS)
+    opts = ["width=\\columnwidth, height=5cm",
+            "ybar, bar width=12pt, ymin=0",
+            "symbolic x coords={" + ",".join(TECH_LABEL[t] for t in TECHS) + "}",
+            "xtick=data", f"ylabel={{{ylabel}}}",
+            f"nodes near coords={{\\pgfmathprintnumber[fixed,precision={precision}]{{\\pgfplotspointmeta}}}}",
+            "nodes near coords style={font=\\scriptsize}", *PGF_COMMON,
+            "enlarge x limits=0.18", "enlarge y limits={upper, value=0.15}"]
+    write_tex_fig(name, pgf_picture(opts, [f"\\addplot[fill=gray!40, draw=black] coordinates\n  {{{coords}}};"]),
+                  written)
+
+
+def pgf_routes(agg, written, v=REF_VUS):
+    """Barres groupées : p95 par route à charge fixe, moyenne ± IC 95 %."""
+    labels = [ENDPOINT_LABEL[e] for e in ENDPOINTS]
+    plots = []
+    for t in TECHS:
+        pts = []
+        for e in ENDPOINTS:
+            r = row_of(agg, t, e, v, "p95_ms")
+            pts.append(f"({ENDPOINT_LABEL[e]},{num(r.moyenne)}) +- (0,{num((r.ic95_haut - r.ic95_bas) / 2)})")
+        plots.append(f"\\addplot[fill={PGF_FILL[t]}, draw=black, error bars/.cd, y dir=both, y explicit]\n"
+                     f"  coordinates {{{' '.join(pts)}}};")
+    plots.append("\\legend{" + ", ".join(TECH_LABEL[t] for t in TECHS) + "}")
+    opts = ["width=\\columnwidth, height=5cm",
+            "ybar, bar width=4pt, ymin=0",
+            "symbolic x coords={" + ",".join(labels) + "}",
+            "xtick=data", "x tick label style={rotate=30, anchor=east}",
+            f"ylabel={{Latence p95 (ms), {v}~VU}}", *PGF_COMMON,
+            "legend style={font=\\scriptsize, at={(0.5,0.97)}, anchor=north, legend columns=4}",
+            "enlarge x limits=0.1", "enlarge y limits={upper, value=0.25}"]
+    write_tex_fig("pgf_p95_routes_50vu.tex", pgf_picture(opts, plots), written)
+
+
+def pgf_boxplot(df, written, v=REF_VUS):
+    """Boîtes à moustaches préparées (quartiles calculés ici ; moustaches = min et max)."""
+    sub = df[(df.endpoint == "all") & (df.utilisateurs == v)]
+    plots = []
+    for i, t in enumerate(TECHS, start=1):
+        x = sub[sub.technologie == t]["p95_ms"]
+        q1, med, q3 = x.quantile([0.25, 0.5, 0.75])
+        plots.append(f"\\addplot+[boxplot prepared={{draw position={i}, lower whisker={num(x.min())}, "
+                     f"lower quartile={num(q1)}, median={num(med)}, upper quartile={num(q3)}, "
+                     f"upper whisker={num(x.max())}}}, draw=black, fill=gray!40, solid] coordinates {{}};")
+    opts = ["width=\\columnwidth, height=5cm",
+            "xtick={1,2,3,4}", "xticklabels={" + ",".join(TECH_LABEL[t] for t in TECHS) + "}",
+            f"ylabel={{Latence p95 globale (ms), {v}~VU}}", *PGF_COMMON]
+    write_tex_fig("pgf_boxplot_p95_50vu.tex", pgf_picture(opts, plots), written)
+
+
+def write_tex_fig(name, body, written):
+    path = FIG / name
+    path.write_text(body, encoding="utf-8")
+    written.append(str(path.relative_to(ROOT)))
+
+
+def pgf_figures(df, agg, dem, written):
+    pgf_curves(agg, "req_s", "Débit global (req/s)", "pgf_debit_vs_vu.tex", written, legend="south east")
+    pgf_curves(agg, "p95_ms", "Latence p95 globale (ms)", "pgf_p95_vs_vu.tex", written)
+    pgf_curves(agg, "cpu_mysql_moy_pct", "CPU moyen de MySQL (\\%)", "pgf_cpu_mysql_vs_vu.tex", written,
+               legend="south east", ymax=250)
+    pgf_routes(agg, written)
+    pgf_boxplot(df, written)
+    at = {t: row_of(agg, t, "all", REF_VUS, "cpu_api_moy_pct").moyenne for t in TECHS}
+    pgf_bars(at, f"CPU moyen de l'API (\\%), {REF_VUS}~VU", "pgf_cpu_api_50vu.tex", written)
+    at = {t: row_of(agg, t, "all", REF_VUS, "ram_api_max_mo").moyenne for t in TECHS}
+    pgf_bars(at, f"RAM maximale de l'API (Mo), {REF_VUS}~VU", "pgf_ram_api_50vu.tex", written)
+    if dem is not None:
+        med = {t: dem[dem.technologie == t]["demarrage_ms"].median() for t in TECHS}
+        pgf_bars(med, "Démarrage à froid (ms)", "pgf_demarrage.tex", written)
 
 
 # --------------------------------------------------------------------------- main
@@ -521,8 +630,12 @@ def main() -> int:
         fig_startup(dem, written)
         table_startup(dem, ram, img, written)
     else:
+        dem = None
         print("ABSENT : raw-results/demarrage.csv (bench/startup_time.py pas encore lancé) : "
               "figure et table du démarrage non produites.")
+
+    # Figures pgfplots pour le rapport (style du modèle).
+    pgf_figures(df, agg, dem, written)
 
     # Résumé des tests à la charge de référence.
     print(f"\nKruskal-Wallis sur p95 à {REF_VUS} VU :")
