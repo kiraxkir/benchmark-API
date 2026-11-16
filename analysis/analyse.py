@@ -531,8 +531,8 @@ def pgf_routes(agg, written, v=REF_VUS):
             "symbolic x coords={" + ",".join(labels) + "}",
             "xtick=data", "x tick label style={rotate=30, anchor=east}",
             f"ylabel={{Latence p95 (ms), {v}~VU}}", *PGF_COMMON,
-            "legend style={font=\\scriptsize, at={(0.5,0.97)}, anchor=north, legend columns=4}",
-            "enlarge x limits=0.1", "enlarge y limits={upper, value=0.25}"]
+            "legend style={font=\\scriptsize, at={(0.5,1.03)}, anchor=south, legend columns=4}",
+            "enlarge x limits=0.1", "enlarge y limits={upper, value=0.1}"]
     write_tex_fig("pgf_p95_routes_50vu.tex", pgf_picture(opts, plots), written)
 
 
@@ -546,7 +546,7 @@ def pgf_boxplot(df, written, v=REF_VUS):
         plots.append(f"\\addplot+[boxplot prepared={{draw position={i}, lower whisker={num(x.min())}, "
                      f"lower quartile={num(q1)}, median={num(med)}, upper quartile={num(q3)}, "
                      f"upper whisker={num(x.max())}}}, draw=black, fill=gray!40, solid] coordinates {{}};")
-    opts = ["width=\\columnwidth, height=5cm",
+    opts = ["width=\\columnwidth, height=5cm", "boxplot/draw direction=y",
             "xtick={1,2,3,4}", "xticklabels={" + ",".join(TECH_LABEL[t] for t in TECHS) + "}",
             f"ylabel={{Latence p95 globale (ms), {v}~VU}}", *PGF_COMMON]
     write_tex_fig("pgf_boxplot_p95_50vu.tex", pgf_picture(opts, plots), written)

@@ -9,9 +9,9 @@
   ylabel={Latence p95 (ms), 50~VU},
   tick label style={font=\footnotesize},
   label style={font=\footnotesize},
-  legend style={font=\scriptsize, at={(0.5,0.97)}, anchor=north, legend columns=4},
+  legend style={font=\scriptsize, at={(0.5,1.03)}, anchor=south, legend columns=4},
   enlarge x limits=0.1,
-  enlarge y limits={upper, value=0.25}]
+  enlarge y limits={upper, value=0.1}]
 \addplot[fill=gray!80, draw=black, error bars/.cd, y dir=both, y explicit]
   coordinates {(GET posts,189.67) +- (0,2.37) (POST posts,182.42) +- (0,2.20) (like,181.93) +- (0,2.14) (follow,182.13) +- (0,2.38) (comment,182.89) +- (0,2.28) (global,186.77) +- (0,2.26)};
 \addplot[fill=gray!50, draw=black, error bars/.cd, y dir=both, y explicit]

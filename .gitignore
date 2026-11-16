@@ -38,3 +38,6 @@ TP2 MRI model Rapport.tex
 
 # Aperçu visuel du rapport (régénérable : python final-report/apercu.py)
 final-report/apercu/
+
+# Pièces jointes du rendu (générées)
+rendu/
