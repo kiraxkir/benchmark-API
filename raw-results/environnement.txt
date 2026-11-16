@@ -116,4 +116,9 @@ Remarque authentification MySQL
 Analyse (phase 6)
 - analysis/analyse.py exécuté avec Python 3.13.0 (hôte ; 3.12 n'est pas installé), pandas 2.3.2,
   matplotlib 3.10.1, scipy 1.16.1 (épinglés dans analysis/requirements.txt).
-- Tables LaTeX : paquets booktabs, multirow et graphicx (\resizebox) requis.
+- Tables LaTeX : paquets booktabs et multirow requis (global.tex : table* sur deux colonnes).
+
+Démarrage à froid (bench/startup_time.py, lancé le 2026-11-16, PC sans autre activité)
+- 30 démarrages par API ; sorties : demarrage.csv, ram_repos.csv, images.csv, demarrage_log.txt.
+- images.csv : taille donnée par docker image inspect (.Size), qui peut différer légèrement des
+  tailles indiquées plus haut (docker images).

@@ -1,0 +1,5 @@
+technologie,image,taille_mo
+laravel,benchmark-laravel:latest+nginx:alpine,808.5
+fastapi,benchmark-fastapi:latest,225.2
+spring,benchmark-spring:latest,496.6
+gin,benchmark-gin:latest,32.5

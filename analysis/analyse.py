@@ -172,6 +172,15 @@ def quality_control(df: pd.DataFrame) -> list[str]:
     lines.append("Aucun essai n'est supprimé : les essais signalés restent dans l'analyse.")
     lines.append("")
     lines.append(f"Période de mesure : {df.horodatage.min()} -> {df.horodatage.max()}")
+    lines.append(f"Requêtes HTTP mesurées au total : {int(df[df.endpoint == 'all'].requetes.sum())}")
+    lines.append("")
+    # Loi de Little (boucle fermée sans pause, 1 requête par itération) : VU ≈ débit × latence moyenne.
+    lines.append("Cohérence (loi de Little) : VU / débit comparé à la latence moyenne mesurée (médianes) :")
+    al = df[df.endpoint == "all"].assign(r_little=lambda d: d.utilisateurs / d.req_s * 1000)
+    for (t, v), g in al.groupby(["technologie", "utilisateurs"]):
+        rl, lm = g.r_little.median(), g.lat_moy_ms.median()
+        lines.append(f"  {TECH_LABEL[t]:<12} {v:>3} VU : VU/débit = {rl:6.1f} ms ; latence moyenne = {lm:6.1f} ms"
+                     f" ; écart {100 * (rl - lm) / lm:+.1f} %")
     if missing:
         lines.append("ATTENTION : combinaisons incomplètes : " + ", ".join(f"{t}/{v} VU ({n})" for t, v, n in missing))
     return lines
@@ -342,26 +351,26 @@ def fig_startup(dem, written):
 
 
 # --------------------------------------------------------------------------- tables LaTeX
-def tex_table(caption, label, colspec, header, rows, note=None, resize=False) -> str:
-    """Table booktabs ; resize=True ramène la table à la largeur de la colonne (\\resizebox)."""
+def tex_table(caption, label, colspec, header, rows, note=None, wide=False) -> str:
+    """Table booktabs ; wide=True : table* sur les deux colonnes (format IEEEtran)."""
+    env = "table*" if wide else "table"
     out = ["% Généré par analysis/analyse.py -- ne pas modifier à la main.",
-           "\\begin{table}[htbp]", "\\centering", "\\small",
-           f"\\caption{{{caption}}}", f"\\label{{{label}}}"]
-    if resize:
-        out.append("\\resizebox{\\linewidth}{!}{%")
-    out += [f"\\begin{{tabular}}{{{colspec}}}", "\\toprule", header + " \\\\", "\\midrule"]
+           f"\\begin{{{env}}}[{'t' if wide else 'htbp'}]", "\\centering", "\\small",
+           f"\\caption{{{caption}}}", f"\\label{{{label}}}",
+           f"\\begin{{tabular}}{{{colspec}}}", "\\toprule", header + " \\\\", "\\midrule"]
     out += rows
-    out += ["\\bottomrule", "\\end{tabular}" + ("}" if resize else "")]
+    out += ["\\bottomrule", "\\end{tabular}"]
     if note:
         out.append(f"\\par\\smallskip\\footnotesize {note}")
-    out.append("\\end{table}")
+    out.append(f"\\end{{{env}}}")
     return "\n".join(out) + "\n"
 
 
 def cell(agg, t, e, v, m, nd=1, ci=False):
+    """Médiane ; avec ci=True : moyenne ± demi-largeur de l'IC 95 % (Student)."""
     r = agg[(agg.technologie == t) & (agg.endpoint == e) & (agg.utilisateurs == v) & (agg.metrique == m)].iloc[0]
     if ci:
-        return f"{fr(r.mediane, nd)} [{fr(r.ic95_bas, nd)}~; {fr(r.ic95_haut, nd)}]"
+        return f"{fr(r.moyenne, nd)} $\\pm$ {fr((r.ic95_haut - r.ic95_bas) / 2, nd)}"
     return fr(r.mediane, nd)
 
 
@@ -385,7 +394,7 @@ def table_global(agg, written):
         rows,
         "CPU en \\% d'un cœur (200~\\% = limite de 2 cœurs). Laravel : php-fpm + nginx sommés "
         "(limite 2,5 cœurs). RAM : maximum observé pendant l'essai. Efficacité = débit / (CPU API / 100).",
-        resize=True),
+        wide=True),
         written)
 
 
@@ -394,7 +403,7 @@ def table_endpoints(agg, written, v=REF_VUS):
     for e in ENDPOINTS:
         rows.append(" & ".join([ENDPOINT_LABEL[e]] + [cell(agg, t, e, v, "p95_ms", ci=True) for t in TECHS]) + " \\\\")
     write_tex("p95_endpoints_50vu.tex", tex_table(
-        f"Latence p95 par endpoint à {v}~VU (ms) : médiane [IC~95~\\% de la moyenne] sur 30 essais",
+        f"Latence p95 par endpoint à {v}~VU (ms) : moyenne $\\pm$ demi-largeur de l'IC~95~\\% (30 essais)",
         "tab:p95-endpoints", "l" + "r" * len(TECHS),
         "Endpoint & " + " & ".join(TECH_LABEL[t] for t in TECHS), rows), written)
 
@@ -440,7 +449,7 @@ def table_startup(dem, ram, img, written):
         if d.empty:
             continue
         lo, hi = ci95(d)
-        cells = [TECH_LABEL[t], str(int(d.count())), fr(d.median(), 0), f"[{fr(lo, 0)}~; {fr(hi, 0)}]"]
+        cells = [TECH_LABEL[t], fr(d.median(), 0), f"{fr(d.mean(), 0)} $\\pm$ {fr((hi - lo) / 2, 0)}"]
         cells.append(fr(ram[ram.technologie == t]["ram_repos_mo"].median(), 1) if ram is not None else "--")
         if img is not None and not img[img.technologie == t].empty:
             cells.append(fr(img[img.technologie == t]["taille_mo"].iloc[0], 0))
@@ -449,10 +458,11 @@ def table_startup(dem, ram, img, written):
         rows.append(" & ".join(cells) + " \\\\")
     write_tex("demarrage.tex", tex_table(
         "Démarrage à froid, RAM au repos et taille des images",
-        "tab:demarrage", "lrrrrr",
-        "API & $n$ & Démarrage méd. (ms) & IC 95~\\% (ms) & RAM repos (Mo) & Image (Mo)", rows,
+        "tab:demarrage", "lrrrr",
+        "API & Médiane & Moyenne $\\pm$ IC~95~\\% & RAM repos & Image \\\\\n"
+        " & (ms) & (ms) & (Mo) & (Mo)", rows,
         "Démarrage : de \\texttt{docker compose up -d} à la première réponse 200 sur "
-        "\\texttt{GET /api/posts?limit=1}. Laravel : php-fpm + nginx."), written)
+        "\\texttt{GET /api/posts?limit=1}. 30 démarrages par API. Laravel : php-fpm + nginx."), written)
 
 
 # --------------------------------------------------------------------------- main

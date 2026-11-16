@@ -1,0 +1,537 @@
+%% ====================================================================
+%% Rapport TP2 MRI (FASI, UPC) -- comparaison de performance de 4 API REST
+%% Modèle : « TP2 MRI model Rapport.tex » (IEEEtran, deux colonnes)
+%%
+%% Compilation : pdfLaTeX (Overleaf : compilateur par défaut), deux passes.
+%% Le dossier final-report/ est autonome : rapport.tex + figures/ + tables/.
+%% figures/ et tables/ sont générés par analysis/analyse.py puis copiés par
+%% final-report/sync.py : ne pas les modifier à la main.
+%% Toutes les valeurs numériques viennent de raw-results/ (via analysis/).
+%% ====================================================================
+\documentclass[conference,a4paper]{IEEEtran}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\renewcommand{\IEEEkeywordsname}{Mots-clés}
+\renewcommand{\abstractname}{Résumé}
+\graphicspath{{figures/}}
+
+\begin{document}
+
+\title{Laravel, FastAPI, Spring Boot ou Gin~: que mesure-t-on vraiment
+quand la base de données sature~?}
+
+\author{
+\IEEEauthorblockN{Victoire TSHIMANGA MBIA}
+\IEEEauthorblockA{FASI, UPC\\
+{[adresse@email.com]}}
+\and
+\IEEEauthorblockN{Benel ILOKO LOKULI}
+\IEEEauthorblockA{FASI, UPC\\
+{[adresse@email.com]}}
+\and
+\IEEEauthorblockN{Jureny AMANI}
+\IEEEauthorblockA{FASI, UPC\\
+{[adresse@email.com]}}
+\and
+\IEEEauthorblockN{Moise MABIALA MODIMBI}
+\IEEEauthorblockA{FASI, UPC\\
+{[adresse@email.com]}}
+\and
+\IEEEauthorblockN{[Prénom NOM Postnom]}
+\IEEEauthorblockA{FASI, UPC\\
+{[adresse@email.com]}}
+}
+
+\maketitle
+
+%% --------------------------------------------------------------------
+\begin{abstract}
+Le choix d'un framework web est souvent justifié par des classements de
+performance obtenus sur des cas très simples. Nous avons écrit la même
+API REST d'un mini réseau social (cinq routes, base MySQL~8.4, SQL
+identique, sans ORM) avec quatre technologies~: Laravel (PHP), FastAPI
+(Python), Spring Boot (Java) et Gin (Go). Chaque API, limitée à deux
+cœurs et 1~Go de mémoire dans Docker, a subi un scénario k6 mixte
+(50~\% de lectures) à 10, 50 et 100 utilisateurs virtuels, répété
+30~fois par configuration (360~essais, 0~\% d'erreur). Le résultat
+principal est que MySQL, lui aussi limité à deux cœurs, sature dès
+10~utilisateurs pour les quatre API~: le débit reste compris entre 384
+et 485~requêtes par seconde et les écarts de débit entre technologies
+ne dépassent pas 20~\%. Les différences apparaissent ailleurs~: dans le
+coût en ressources (Gin sert le même débit avec environ 22~\% d'un cœur
+et 13~Mo, Laravel sature ses deux cœurs), et dans la forme de la
+distribution des latences (à 50~utilisateurs, Laravel a la médiane la
+plus haute mais le p95 le plus bas, 184~ms contre 287 à 293~ms). Pour
+une application dominée par la base de données, l'efficacité en
+ressources compte donc davantage que le débit brut du framework.
+Au démarrage à froid, Gin répond en 0,45~s, Laravel en 0,9~s, FastAPI
+en 1,7~s et Spring Boot en 3,3~s (médianes sur 30~démarrages).
+\end{abstract}
+
+\begin{IEEEkeywords}
+performance, API REST, test de charge, k6, MySQL, Laravel, FastAPI,
+Spring Boot, Gin
+\end{IEEEkeywords}
+
+%% ====================================================================
+\section{Introduction}
+%% ====================================================================
+Le temps de réponse d'un service web conditionne l'expérience de ses
+utilisateurs et le coût de son hébergement~: une technologie qui sert
+le même trafic avec moins de processeur et de mémoire coûte moins cher
+à exploiter. Le choix du langage et du framework est donc souvent
+présenté comme une décision de performance.
+
+Les affirmations qui circulent (\og Go est plus rapide que PHP \fg,
+\og Java consomme trop de mémoire \fg) reposent surtout sur des
+classements publics comme TechEmpower~\cite{techempower}. Ces
+classements mesurent des cas volontairement simples (sérialisation
+JSON, une requête SQL) avec des implémentations très optimisées. Ils ne
+disent pas ce qui se passe pour une application ordinaire, écrite de
+façon raisonnable, dont le travail principal est d'interroger une base
+de données.
+
+\textbf{Question de recherche.} Pour une même API REST adossée à MySQL,
+écrite de façon équivalente, la technologie utilisée change-t-elle de
+façon significative le débit, la latence et la consommation de
+ressources sous une charge croissante~?
+
+\textbf{Hypothèses} (formulées avant la campagne de mesures)~:
+\begin{itemize}
+\item \textbf{H1}~: Gin et Spring Boot ont un débit supérieur à FastAPI
+et Laravel à 100~utilisateurs, grâce à la compilation (Go) ou à la
+compilation à la volée (JVM).
+\item \textbf{H2}~: sur les écritures, les écarts entre technologies se
+réduisent, car MySQL devient le facteur limitant.
+\item \textbf{H3}~: Spring Boot consomme le plus de mémoire et met le
+plus de temps à démarrer (coût de la JVM).
+\end{itemize}
+
+\textbf{Contribution.} Nous fournissons quatre implémentations
+vérifiées comme équivalentes, un protocole reproductible et
+360~essais bruts publiés. La section~\ref{sec:methodo} décrit la
+méthodologie, la section~\ref{sec:dev} le développement, la
+section~\ref{sec:resultats} les résultats et leur discussion.
+
+%% ====================================================================
+\section{Méthodologie}\label{sec:methodo}
+%% ====================================================================
+\subsection{Application de référence}
+L'application est l'API d'un mini réseau social. Cinq routes sont
+exposées sous \texttt{/api}~: lister les publications avec leurs
+compteurs de mentions \og j'aime \fg{} et de commentaires
+(\texttt{GET /posts}, paginé), créer une publication, aimer une
+publication, suivre un utilisateur et commenter. Le cahier des charges
+fixe, pour chaque route, le SQL exact, l'ordre des vérifications et les
+réponses (codes HTTP 200, 201, 400, 404, 409, corps JSON
+\texttt{\{"error":"\ldots"\}}). Par exemple, un \og j'aime \fg{} en
+double renvoie \texttt{409 already\_liked} à partir de l'erreur MySQL
+1062. Les données (1\,000~utilisateurs, 10\,000~publications,
+20\,000~\og j'aime \fg, 5\,000~abonnements, 20\,000~commentaires)
+sont générées avec une graine fixe et remises à l'identique avant
+chaque essai.
+
+\subsection{Technologies comparées}
+Les quatre technologies (tableau~\ref{tab:techno}) couvrent quatre
+modèles d'exécution~: processus PHP recréant leur contexte à chaque
+requête (php-fpm), boucle d'événements asynchrone (Python, uvicorn),
+machine virtuelle avec compilation à la volée et pool de threads (JVM,
+Tomcat) et binaire natif avec goroutines (Go). Toutes accèdent à MySQL
+en SQL direct, sans ORM~: \texttt{DB::select} (Laravel),
+\texttt{aiomysql} (FastAPI), \texttt{JdbcTemplate} et HikariCP
+(Spring), \texttt{database/sql} (Gin).
+
+\begin{table}[htbp]
+\caption{Technologies comparées}
+\label{tab:techno}
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Technologie} & \textbf{Langage} & \textbf{Version (serveur)} \\
+\midrule
+Laravel 13.42.0 & PHP 8.3.36 & php-fpm + nginx 1.31.8 \\
+FastAPI 0.163.1 & Python 3.12.16 & uvicorn 0.54.0 \\
+Spring Boot 4.1.2 & Java (OpenJDK 25.0.5) & Tomcat 11.0.27 \\
+Gin 1.12.0 & Go 1.27.4 & serveur HTTP de Go \\
+\midrule
+MySQL 8.4.13 & -- & InnoDB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Métriques}
+\begin{itemize}
+\item \textbf{Débit} (requêtes/s, k6)~: capacité de traitement
+soutenue.
+\item \textbf{Latence p50, p95, p99} (ms, k6)~: la médiane décrit
+l'expérience typique~; p95 et p99 décrivent les ralentissements que
+subit une partie des utilisateurs, souvent plus importants en
+pratique que la moyenne.
+\item \textbf{Taux d'erreur} (\%, k6)~: un bon débit obtenu avec des
+erreurs n'est pas un bon résultat. Les réponses 409 (doublon) sont des
+réponses métier attendues et ne comptent pas comme des erreurs.
+\item \textbf{CPU moyen et RAM maximale de l'API} (\% d'un cœur, Mo,
+\texttt{docker stats} échantillonné environ une fois par seconde)~:
+coût d'exécution. Pour Laravel, php-fpm et nginx sont additionnés.
+\item \textbf{CPU de MySQL} (\%, \texttt{docker stats})~: indique si le
+goulot est la base ou l'API.
+\item \textbf{Efficacité} (requêtes/s par cœur, calculée~: débit
+divisé par CPU/100)~: performance à ressources égales.
+\item \textbf{Temps de démarrage à froid} (ms)~: de
+\texttt{docker compose up} à la première réponse 200~; pertinent pour
+la mise à l'échelle automatique.
+\end{itemize}
+
+\subsection{Outils et environnement de test}
+Une seule machine sert à la fois de serveur et de générateur de
+charge~: ordinateur portable HP Victus, Intel Core i5-12450H (8~cœurs,
+12~threads), 16~Go de RAM, Windows~11, Docker Desktop 29.9.3 (WSL~2).
+Chaque API tourne dans un conteneur limité à 2~cœurs et 1~Go. Le
+conteneur nginx de Laravel dispose en plus de 0,5~cœur et 128~Mo. MySQL
+est limité à 2~cœurs et 2~Go (pool InnoDB de 512~Mo). Chaque API ouvre
+au plus 10~connexions MySQL. La charge est générée par k6
+2.4.0~\cite{k6} depuis l'hôte. La durabilité de MySQL a été réduite
+(\texttt{innodb\_flush\_log\_at\_trx\_commit=2}, sans journal
+binaire~\cite{mysql}). Avec la configuration par défaut, chaque
+écriture coûtait environ 9~ms de synchronisation disque sous WSL~2, ce
+qui aurait mesuré le disque plutôt que les API.
+
+\subsection{Déroulement des tests}
+Le scénario k6 utilise l'exécuteur \texttt{constant-vus}. Chaque
+utilisateur virtuel (VU) enchaîne les requêtes sans pause, chacune
+tirée au sort~: liste 50~\%, création de publication 15~\%,
+\og j'aime \fg{} 15~\%, abonnement 10~\%, commentaire 10~\%. Les
+identifiants sont tirés dans les données initiales et les pages entre
+1 et~50 (20~publications par page). La campagne, entièrement scriptée
+(\texttt{bench/run\_campaign.py}), suit ces étapes~:
+\begin{enumerate}
+\item trois tours de dix essais~; l'ordre des technologies est décalé
+d'un cran à chaque tour, pour répartir les effets de dérive de la
+machine~;
+\item pour chaque technologie, démarrage de ses seuls conteneurs (les
+autres API arrêtées), attente d'une réponse 200, puis échauffement de
+10~s à 10~VU~;
+\item pour chaque essai et chaque charge (10, 50, 100~VU)~:
+remise à zéro de la base (comptages vérifiés), pause de 2~s, puis
+k6 pendant 15~s, avec \texttt{docker stats} relevé en parallèle.
+\end{enumerate}
+Soit 4~technologies $\times$ 3~charges $\times$ 30~essais
+$=$ 360~essais. Ils ont été exécutés en 1~h~46 le 15~novembre~2026,
+sans interruption.
+Le démarrage à froid est mesuré à part (\texttt{bench/startup\_time.py})~:
+30~démarrages par API, de \texttt{docker compose up -d} à la première
+réponse 200 sur \texttt{GET /api/posts?limit=1} (sondage toutes les
+50~ms), puis relevé de la RAM après 5~s de repos.
+Les résultats sont résumés par la médiane, la moyenne et un intervalle
+de confiance à 95~\% (loi de Student) sur les 30~essais, comme le
+recommandent Georges et al.~\cite{georges}. Les différences de p95
+entre technologies sont testées par Kruskal-Wallis~\cite{kruskal}
+(sans hypothèse de normalité), puis par paires par Mann-Whitney
+\cite{mannwhitney} avec correction de Holm~\cite{holm}.
+
+%% ====================================================================
+\section{Développement}\label{sec:dev}
+%% ====================================================================
+\subsection{Réalisation des versions}
+Chaque version tient en un fichier principal de 250 à 420~lignes~:
+contrôleur Laravel, \texttt{main.py} FastAPI, contrôleur Spring,
+\texttt{main.go}. La validation est écrite à la main dans les quatre
+versions, plutôt que confiée aux validateurs des frameworks (Validator,
+Pydantic, liaison de Gin), car leurs règles diffèrent. Par exemple, un
+entier envoyé en chaîne (\texttt{"12"}) est accepté par certains et
+refusé par d'autres. Les dates sont formatées par MySQL
+(\texttt{DATE\_FORMAT}) et renvoyées telles quelles. Les configurations
+de production sont appliquées partout~: mode debug coupé, journaux
+d'accès désactivés, OPcache et caches de configuration pour Laravel,
+\texttt{ReleaseMode} pour Gin, \texttt{-Xmx512m} pour Spring.
+Les dépendances sont épinglées (fichiers de verrouillage).
+
+L'assistant Claude Code (Anthropic) a été utilisé pour écrire le code
+des quatre versions, les scripts de campagne et d'analyse, et une
+première version de ce rapport. Le groupe a fixé le cahier des charges,
+tranché chaque point ambigu et validé chaque étape. Toutes les valeurs
+citées proviennent des fichiers bruts.
+
+\subsection{Équivalence fonctionnelle}
+Un test de contrat unique (\texttt{tests/contract\_test.py},
+102~cas) interroge les quatre API~: cas nominaux, erreurs de
+validation, ressources absentes, doublons, auto-abonnement, bornes de
+pagination, tri, espaces Unicode, texte trop long. Il vérifie les codes,
+les corps et l'état de la base, puis compare le corps exact des
+réponses entre les quatre API (hors identifiants et dates des
+créations). Résultat~: 102/102 réussis pour chaque API et corps
+identiques dans les 102~cas, condition préalable à toute mesure.
+
+\subsection{Difficultés rencontrées}
+\begin{itemize}
+\item \textbf{Formats d'erreur par défaut} (422 de Laravel et FastAPI,
+page \og Whitelabel \fg{} de Spring, redirection sur barre oblique
+finale de Gin)~: remplacés par des gestionnaires communs.
+\item \textbf{Pilotes MySQL}~: Laravel et Gin préparaient les requêtes
+côté serveur (trois commandes par requête~: préparation, exécution, fermeture), FastAPI et Spring non.
+Les quatre versions insèrent désormais les paramètres côté client. Le
+connecteur de Laravel exécute en plus \texttt{USE} et
+\texttt{SET NAMES} à chaque requête HTTP~; ce comportement est conservé
+et signalé dans les limites.
+\item \textbf{Coût des écritures}~: environ 9~ms par écriture avec la
+durabilité complète, d'où le réglage décrit plus haut.
+\item \textbf{k6 v2}~: la structure du résumé JSON a été vérifiée sur
+un essai court avant d'écrire le script d'extraction.
+\end{itemize}
+
+%% ====================================================================
+\section{Résultats et discussion}\label{sec:resultats}
+%% ====================================================================
+\subsection{Données recueillies}
+Les 360~essais sont tous présents (30 par technologie et par charge),
+sans valeur manquante. Aucune requête n'a échoué~: le taux d'erreur
+est de 0~\% dans tous les essais. Ils représentent
+2\,294\,821
+requêtes HTTP. Chaque essai produit une ligne par route et une ligne
+globale dans \texttt{raw-results/mesures.csv}, accompagnée du résumé
+JSON de k6 et des relevés \texttt{docker stats}. Contrôle de
+cohérence~: en boucle fermée sans pause, la loi de
+Little~\cite{little} impose $N = X \cdot R$ (VU $=$ débit $\times$
+latence moyenne). Le rapport VU/débit et la latence moyenne mesurée
+concordent à 1,1~\% près dans les 12~configurations. Le
+tableau~\ref{tab:global} résume les mesures.
+
+\input{tables/global}
+
+\subsection{Analyse}
+\textbf{La base de données est le goulot.} Le CPU de MySQL est à
+189--200~\% (sur 200~\% autorisés) pour les quatre API et dès
+10~VU (figure~\ref{fig:mysql}), alors que trois des quatre API utilisent
+moins de 60~\% d'un seul cœur (figure~\ref{fig:cpu}). Le débit
+plafonne donc entre 384 et 485~requêtes/s (figure~\ref{fig:debit}). Il
+baisse même légèrement entre 10 et 50~VU, puis ne bouge plus à
+100~VU. FastAPI a le débit le plus élevé à chaque charge (441,5~req/s à
+100~VU), devant Gin (420,5), Spring Boot (406,2) et Laravel (383,8).
+L'écart entre le premier et le dernier est de 15~\%.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{debit_vs_vu.pdf}
+\caption{Débit global selon la charge (médiane et IC~95~\% sur
+30~essais). L'axe vertical ne part pas de zéro~: les écarts sont au
+plus de 20~\%.}
+\label{fig:debit}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{cpu_mysql.pdf}
+\caption{CPU moyen de MySQL (moyenne et IC~95~\%)~: 200~\% est la
+limite de ses deux cœurs, atteinte avec les quatre API.}
+\label{fig:mysql}
+\end{figure}
+
+\textbf{La latence croît avec la charge, parce que les requêtes font la
+queue devant la base.} Comme le débit ne bouge plus au-delà de
+10~VU, la latence moyenne augmente presque proportionnellement au
+nombre d'utilisateurs~: c'est la loi de Little. Le p95 de FastAPI,
+Spring Boot et Gin passe d'environ 80~ms à 10~VU à environ 600~ms à
+100~VU (figure~\ref{fig:p95}). Celui de Laravel ne monte qu'à 305~ms.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{p95_vs_vu.pdf}
+\caption{Latence p95 globale selon la charge (médiane et IC~95~\%).}
+\label{fig:p95}
+\end{figure}
+
+\textbf{Laravel~: médiane plus haute, queue plus courte.} À 50~VU,
+Laravel a la latence médiane la plus élevée (114,8~ms contre
+99,9--101,0~ms pour les autres), mais le p95 (184~ms contre
+287--293~ms) et le p99 (197~ms contre 383--401~ms) les plus bas. Ses
+30~essais ne se chevauchent pas avec ceux des autres API
+(figure~\ref{fig:box}), et l'écart se retrouve sur chacune des cinq
+routes (figure~\ref{fig:routes}). Le test de Kruskal-Wallis
+(tableau~\ref{tab:kruskal}) confirme des différences de p95 entre
+technologies pour chaque route ($p < 10^{-6}$, taille d'effet
+$\varepsilon^2$ de 0,64 à 0,83). Seule la paire Spring Boot / Gin n'est
+pas significative, sur la création de publication et l'abonnement.
+Avec 30~essais très réguliers, des écarts de quelques millisecondes
+deviennent \og significatifs \fg~: c'est la taille de l'écart qui
+compte, plus que la valeur de~$p$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{boxplot_p95_50vu.pdf}
+\caption{Distribution du p95 global des 30~essais à 50~VU.}
+\label{fig:box}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{p95_par_techno_50vu.pdf}
+\caption{Latence p95 par route à 50~VU (moyenne et IC~95~\% sur
+30~essais).}
+\label{fig:routes}
+\end{figure}
+
+\input{tables/kruskal_p95_50vu}
+
+\textbf{Le coût en ressources est très inégal.} Pour un débit voisin,
+Gin consomme environ 22~\% d'un cœur, Spring Boot 40~\%, FastAPI
+57~\%, tandis que Laravel sature ses deux cœurs (191--198~\%, nginx
+compris, figure~\ref{fig:cpu}). Rapporté au CPU, Gin sert environ
+1\,950~requêtes/s par cœur, Spring Boot environ 1\,000, FastAPI environ
+780 et Laravel environ 200, soit près de dix fois moins que Gin
+(tableau~\ref{tab:global}). En mémoire (figure~\ref{fig:ram}), Spring
+Boot occupe environ 210--215~Mo en moyenne, FastAPI 110~Mo (deux
+processus), Laravel 63~Mo (dix processus php-fpm et nginx) et Gin
+11--13~Mo.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{cpu_api.pdf}
+\caption{CPU moyen de l'API (moyenne et IC~95~\%). Laravel~: php-fpm
+et nginx additionnés.}
+\label{fig:cpu}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{ram_api.pdf}
+\caption{RAM maximale de l'API pendant un essai (moyenne et IC~95~\%).}
+\label{fig:ram}
+\end{figure}
+
+\textbf{Démarrage à froid.} Gin répond en 445~ms (médiane), Laravel en
+902~ms, FastAPI en 1\,733~ms et Spring Boot en 3\,346~ms
+(figure~\ref{fig:demarrage}, tableau~\ref{tab:demarrage}). Laravel est
+le plus irrégulier (de 806 à 1\,887~ms). Au repos, Gin occupe 3,3~Mo,
+Laravel 46,6~Mo, FastAPI 104,2~Mo et Spring Boot 123,2~Mo. L'image Gin
+(32~Mo) est 25~fois plus petite que celle de Laravel avec nginx
+(808~Mo).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{demarrage.pdf}
+\caption{Temps de démarrage à froid (30~démarrages par API).}
+\label{fig:demarrage}
+\end{figure}
+
+\input{tables/demarrage}
+
+\subsection{Interprétation et discussion}
+\textbf{H1 est infirmée.} À 100~VU, FastAPI a le meilleur débit et
+Gin et Spring Boot ne dépassent que Laravel. L'explication la plus
+probable est la saturation de MySQL~: le débit mesure surtout la
+capacité de la base, et les écarts restants (au plus 20~\%) ne
+reflètent pas la vitesse intrinsèque des langages. Nous n'avons pas
+mesuré quelle requête SQL consomme le plus de CPU dans MySQL. La liste
+paginée, avec deux sous-requêtes de comptage par publication et un
+décalage allant jusqu'à 980~lignes, est une candidate plausible, mais
+non vérifiée.
+
+\textbf{H2 ne peut pas être testée telle qu'elle est formulée.} Le
+scénario mélange lectures et écritures dans un même essai. La base
+saturée ralentit donc toutes les routes à la fois, et les écarts entre
+technologies sont du même ordre pour les lectures et pour les écritures
+(figure~\ref{fig:routes}). Isoler les écritures demanderait un scénario
+séparé.
+
+\textbf{H3}~: Spring Boot est bien la version la plus gourmande en
+mémoire, avec environ deux fois plus que FastAPI et 17 à 19 fois
+plus que Gin.
+Elle est aussi la plus lente à démarrer (3,3~s en médiane, contre
+1,7~s pour FastAPI, 0,9~s pour Laravel et 0,45~s pour Gin)~: H3 est
+confirmée.
+
+\textbf{Pourquoi Laravel a-t-il une queue de latence plus courte~?}
+Nous proposons une explication que nous n'avons pas vérifiée~:
+php-fpm a exactement dix processus, chacun gardant une connexion MySQL
+pendant toute la requête. Au plus dix requêtes sont donc traitées à la
+fois et les autres attendent dans la file du serveur, servies dans
+l'ordre d'arrivée~: chacune attend à peu près autant, d'où une médiane
+plus haute mais une queue courte. Les trois autres API acceptent toutes
+les requêtes en même temps et les font attendre à l'intérieur du
+processus, sans ordre garanti, d'où une dispersion plus grande. Limiter
+la concurrence dans les trois autres versions permettrait de tester
+cette explication.
+
+\textbf{Ce que l'on ne peut pas conclure.} Ces résultats ne classent
+pas les langages \og en général \fg~: ils comparent quatre
+implémentations dans une situation où la base de données limite tout.
+Avec une base plus puissante, une requête plus légère ou un réglage
+différent (Laravel Octane, réglage fin de la JVM), le classement du
+débit pourrait changer. Les écarts de coût en CPU et en mémoire, eux,
+ont peu de chances de s'inverser, mais nous ne l'avons pas testé.
+
+\textbf{Limites.} (1)~k6, les API et MySQL partagent une seule
+machine, un ordinateur portable, sous Docker Desktop et WSL~2. (2)~La
+durabilité de MySQL est réduite (perte possible d'environ une seconde
+de transactions en cas de panne de l'hôte, sans effet sur les
+mesures). (3)~Laravel dispose de 0,5~cœur supplémentaire pour nginx et
+exécute deux commandes SQL de plus par requête HTTP. (4)~Chaque essai
+dure 15~s. (5)~Le scénario, sans temps de pause, n'imite pas des
+utilisateurs réels, et un seul mélange de requêtes a été testé.
+(6)~Le CPU et la mémoire sont échantillonnés environ une fois par
+seconde par \texttt{docker stats}. (7)~Les configurations sont des
+réglages de production raisonnables, pas des optimisations poussées.
+(8)~Le temps de démarrage inclut le coût de la commande
+\texttt{docker compose}~; le conteneur est relancé et non recréé, et le
+cache disque de l'hôte reste chaud.
+
+%% ====================================================================
+\section{Conclusion}
+%% ====================================================================
+Nous avons comparé quatre implémentations équivalentes d'une même API
+REST sur 360~essais. Pour une application dont le travail principal
+est d'interroger la base de données, la technologie change peu le
+débit (au plus 20~\% d'écart), car MySQL sature dès 10~utilisateurs
+simultanés. Elle change beaucoup en revanche le coût d'exécution, qui
+varie d'environ dix fois en CPU entre Gin et Laravel et de
+17 à 19 fois en mémoire entre Gin et Spring Boot. Elle change aussi la
+forme de la distribution des latences. Avant de choisir un framework
+pour sa vitesse, il faut donc identifier le vrai goulot de
+l'application. Des suites possibles sont de refaire la campagne avec
+une base dimensionnée pour ne plus saturer, de tester séparément
+lectures et écritures, et de vérifier l'explication proposée pour la
+queue de latence de Laravel.
+
+%% ====================================================================
+\begin{thebibliography}{00}
+\bibitem{techempower} TechEmpower, \og Web Framework Benchmarks \fg.
+[En ligne]. Disponible~: \url{https://www.techempower.com/benchmarks/}.
+[Consulté le 16~novembre~2026].
+\bibitem{k6} Grafana Labs, \og Grafana k6 documentation \fg. [En
+ligne]. Disponible~: \url{https://grafana.com/docs/k6/latest/}.
+[Consulté le 16~novembre~2026].
+\bibitem{mysql} Oracle, \og MySQL 8.4 Reference Manual -- InnoDB
+Startup Options and System Variables \fg. [En ligne]. Disponible~:
+\url{https://dev.mysql.com/doc/refman/8.4/en/innodb-parameters.html}.
+[Consulté le 16~novembre~2026].
+\bibitem{georges} A.~Georges, D.~Buytaert et L.~Eeckhout,
+\og Statistically rigorous Java performance evaluation \fg,
+\textit{Proc. OOPSLA}, p.~57--76, 2007.
+\bibitem{kruskal} W.~H.~Kruskal et W.~A.~Wallis, \og Use of ranks in
+one-criterion variance analysis \fg, \textit{Journal of the American
+Statistical Association}, vol.~47, n\textsuperscript{o}~260,
+p.~583--621, 1952.
+\bibitem{mannwhitney} H.~B.~Mann et D.~R.~Whitney, \og On a test of
+whether one of two random variables is stochastically larger than the
+other \fg, \textit{The Annals of Mathematical Statistics}, vol.~18,
+n\textsuperscript{o}~1, p.~50--60, 1947.
+\bibitem{holm} S.~Holm, \og A simple sequentially rejective multiple
+test procedure \fg, \textit{Scandinavian Journal of Statistics},
+vol.~6, n\textsuperscript{o}~2, p.~65--70, 1979.
+\bibitem{little} J.~D.~C.~Little, \og A proof for the queuing formula:
+$L = \lambda W$ \fg, \textit{Operations Research}, vol.~9,
+n\textsuperscript{o}~3, p.~383--387, 1961.
+\end{thebibliography}
+
+\end{document}

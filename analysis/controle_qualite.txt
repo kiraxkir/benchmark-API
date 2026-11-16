@@ -24,3 +24,18 @@ Lignes avec un taux d'erreur > 0 : 0 ; maximum : 0 %
 Aucun essai n'est supprimé : les essais signalés restent dans l'analyse.
 
 Période de mesure : 2026-11-15T21:57:33Z -> 2026-11-15T23:43:54Z
+Requêtes HTTP mesurées au total : 2294821
+
+Cohérence (loi de Little) : VU / débit comparé à la latence moyenne mesurée (médianes) :
+  FastAPI       10 VU : VU/débit =   20.6 ms ; latence moyenne =   20.4 ms ; écart +0.9 %
+  FastAPI       50 VU : VU/débit =  112.6 ms ; latence moyenne =  111.6 ms ; écart +0.8 %
+  FastAPI      100 VU : VU/débit =  226.5 ms ; latence moyenne =  224.3 ms ; écart +1.0 %
+  Gin           10 VU : VU/débit =   22.3 ms ; latence moyenne =   22.1 ms ; écart +0.8 %
+  Gin           50 VU : VU/débit =  118.3 ms ; latence moyenne =  117.7 ms ; écart +0.5 %
+  Gin          100 VU : VU/débit =  237.8 ms ; latence moyenne =  236.3 ms ; écart +0.6 %
+  Laravel       10 VU : VU/débit =   24.8 ms ; latence moyenne =   24.6 ms ; écart +0.8 %
+  Laravel       50 VU : VU/débit =  130.4 ms ; latence moyenne =  129.4 ms ; écart +0.8 %
+  Laravel      100 VU : VU/débit =  260.6 ms ; latence moyenne =  257.8 ms ; écart +1.1 %
+  Spring Boot   10 VU : VU/débit =   22.3 ms ; latence moyenne =   22.1 ms ; écart +0.9 %
+  Spring Boot   50 VU : VU/débit =  123.5 ms ; latence moyenne =  122.6 ms ; écart +0.8 %
+  Spring Boot  100 VU : VU/débit =  246.2 ms ; latence moyenne =  243.4 ms ; écart +1.1 %
