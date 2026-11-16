@@ -32,3 +32,6 @@ final-report/*.out
 final-report/*.synctex.gz
 final-report/*.fdb_latexmk
 final-report/*.fls
+
+# Modèle de rapport fourni par le cours (gardé en local, non versionné)
+TP2 MRI model Rapport.tex
